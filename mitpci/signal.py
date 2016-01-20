@@ -25,9 +25,9 @@ class Signal(object):
 
     def getDigitizerBoard(self, channels_per_board=8):
         'Get digitizer board corresponding to `self.channel`.'
-        if (self.channel >= 1) and (self.channel <= channels_per_board):
+        if (self.channel > 0) and (self.channel <= channels_per_board):
             return 'DT216_7'
-        elif self.channel <= (2 * channels_per_board):
+        elif (self.channel > 0) and (self.channel <= (2 * channels_per_board)):
             return 'DT216_8'
         else:
             raise ValueError(

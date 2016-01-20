@@ -15,5 +15,5 @@ def test_getDigitizerBoard():
     tools.assert_equal(Signal(shot, 16).digitizer_board, 'DT216_8')
 
     # Other channels should raise ValueError
-    tools.assert_raises(ValueError, Signal(shot, 0))
-    tools.assert_raises(ValueError, Signal(shot, 16))
+    tools.assert_raises(ValueError, Signal, *[shot, 0])
+    tools.assert_raises(ValueError, Signal, *[shot, 17])
