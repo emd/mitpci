@@ -4,14 +4,14 @@ except ImportError:
     from distutils.core import setup
 
 config = {
-    'name': 'projectname',
+    'name': 'mitpci',
     'version': '0.1',
-    'packages': ['NAME'],
-    'install_requires': ['nose'],
+    'packages': ['mitpci'],
+    'install_requires': ['numpy', 'MDSplus', 'nose'],
     'author': 'Evan M. Davis',
     'author_email': 'emd@mit.edu',
-    'url': 'URL to get it at.',
-    'description': 'My Project'
+    'url': '',
+    'description': 'Interact with signals from `mitpci` digitizer system'
 }
 
 setup(**config)
