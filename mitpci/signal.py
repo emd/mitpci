@@ -46,7 +46,7 @@ class Signal(object):
         # Downsample if desired
         if Fs is not None:
             if Fs > 0:
-                downsample = np.int(np.ceil(digitizer_rate / Fs))
+                downsample = np.int(np.floor(digitizer_rate / Fs))
             else:
                 raise ValueError('`Fs` must be positive')
         else:
