@@ -18,9 +18,11 @@ class Signal(object):
         self.shot = shot
         self.channel = channel
 
-        self.digitizer_board = self.getDigitizerBoard()
+        mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
 
-        # mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+        self._digitizer_board = self.getDigitizerBoard()
+        self.Fs, self._downsample = self.getSampleRate(mds_tree, Fs=Fs)
+
         pass
 
     def getDigitizerBoard(self, channels_per_board=8):
@@ -34,10 +36,23 @@ class Signal(object):
                 'Valid `channel` values between 1 and %i' %
                 (2 * channels_per_board))
 
-    def getSampleRate(self, mds_tree):
-        # need digitizer...
-        # Fs = mds_tree.getNode(self._digitizers[0] + ':CLOCK_DIV').data()
-        pass
+    def getSampleRate(self, mds_tree, Fs=None):
+        'Get signal sampling rate, including effects of desired downsampling.'
+        node = mds_tree.getNode(
+            'HARDWARE:' + self._digitizer_board + ':CLOCK_DIV')
+
+        digitizer_rate = np.float(node.data())
+
+        # Downsample if desired
+        if Fs is not None:
+            if Fs > 0:
+                downsample = np.int(np.ceil(digitizer_rate / Fs))
+            else:
+                raise ValueError('`Fs` must be positive')
+        else:
+            downsample = 1
+
+        return (digitizer_rate / downsample, downsample)
 
     def getInitialTime(self):
         pass
