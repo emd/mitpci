@@ -3,7 +3,16 @@ import numpy as np
 from mitpci.signal import Signal
 
 
-def test_getDigitizerBoard():
+def test__checkChannels():
+    # Use the default "model" tree
+    shot = -1
+
+    #  Channels < 0 or > 16 should raise ValueError
+    tools.assert_raises(ValueError, Signal, *[shot, 0])
+    tools.assert_raises(ValueError, Signal, *[shot, 17])
+
+
+def test__getDigitizerBoard():
     # Use the default "model" tree
     shot = -1
 
@@ -15,12 +24,8 @@ def test_getDigitizerBoard():
     tools.assert_equal(Signal(shot, 9)._digitizer_board, 'DT216_8')
     tools.assert_equal(Signal(shot, 16)._digitizer_board, 'DT216_8')
 
-    # Other channels should raise ValueError
-    tools.assert_raises(ValueError, Signal, *[shot, 0])
-    tools.assert_raises(ValueError, Signal, *[shot, 17])
 
-
-def test_getSampleRate():
+def test__getSampleRate():
     # Chris likes this shot - will probably be available for tests forever
     shot = 150000
     Fs = 4e6  # digitization rate

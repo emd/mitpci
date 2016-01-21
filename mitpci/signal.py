@@ -14,32 +14,42 @@ import MDSplus as mds
 
 
 class Signal(object):
-    def __init__(self, shot, channel, Fs=None, tlim=None):
+    def __init__(self, shot, channel, channels_per_board=8,
+                 Fs=None, tlim=None):
         self.shot = shot
         self.channel = channel
 
-        mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+        self._checkChannels(channels_per_board=channels_per_board)
 
-        self._digitizer_board = self.getDigitizerBoard()
-        self.Fs, self._downsample = self.getSampleRate(mds_tree, Fs=Fs)
+        self._digitizer_board = self._getDigitizerBoard(
+            channels_per_board=channels_per_board)
+        # self._node_name = self.getNodeName(
+        #     channels_per_board=channels_per_board)
+
+        mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+        self.Fs, self._downsample = self._getSampleRate(mds_tree, Fs=Fs)
 
         pass
 
-    def getDigitizerBoard(self, channels_per_board=8):
-        'Get digitizer board corresponding to `self.channel`.'
-        if (self.channel > 0) and (self.channel <= channels_per_board):
-            return 'DT216_7'
-        elif (self.channel > 0) and (self.channel <= (2 * channels_per_board)):
-            return 'DT216_8'
-        else:
+    def _checkChannels(self, channels_per_board=8):
+        'Ensure that `self.channel` corresponds to a physical mitpci channel.'
+        if (self.channel <= 0) or (self.channel > (2 * channels_per_board)):
             raise ValueError(
                 'Valid `channel` values between 1 and %i' %
                 (2 * channels_per_board))
+        return
 
-    def getSampleRate(self, mds_tree, Fs=None):
+    def _getDigitizerBoard(self, channels_per_board=8):
+        'Get digitizer board corresponding to `self.channel`.'
+        if self.channel <= channels_per_board:
+            return 'DT216_7'
+        else:
+            return 'DT216_8'
+
+    def _getSampleRate(self, mds_tree, Fs=None):
         'Get signal sampling rate, including effects of desired downsampling.'
         node = mds_tree.getNode(
-            'HARDWARE:' + self._digitizer_board + ':CLOCK_DIV')
+            '.HARDWARE:%s:CLOCK_DIV' % self._digitizer_board)
 
         digitizer_rate = np.float(node.data())
 
@@ -54,8 +64,18 @@ class Signal(object):
 
         return (digitizer_rate / downsample, downsample)
 
+    # def _getNodeName(self, channels_per_board=8):
+    #     board_channel = 1 + ((self.channel - 1) % channels_per_board)
+    #     node_name = '.HARDWARE:%s:INPUT_%s' % (self._digitizer_board,
+    #                                            str(board_channel).zfill(2))
+    #     return node_name
+
     def getInitialTime(self):
         pass
 
     def getSignal(self):
+        pass
+
+    @property
+    def t(self):
         pass
