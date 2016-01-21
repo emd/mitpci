@@ -40,10 +40,10 @@ def test__getNodeName():
     # Boundaries of board 8
     tools.assert_equal(
         Signal(shot, 9)._node_name,
-        '.HARDWARE:DT216_7:INPUT_01')
+        '.HARDWARE:DT216_8:INPUT_01')
     tools.assert_equal(
         Signal(shot, 16)._node_name,
-        '.HARDWARE:DT216_7:INPUT_08')
+        '.HARDWARE:DT216_8:INPUT_08')
 
 
 def test__getSampleRate():
