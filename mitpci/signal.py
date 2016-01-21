@@ -25,7 +25,7 @@ class Signal(object):
         # Obtain digitizer board and signal node name for `self.channel`
         self._digitizer_board = self._getDigitizerBoard(
             channels_per_board=channels_per_board)
-        self._node_name = self.getNodeName(
+        self._node_name = self._getNodeName(
             channels_per_board=channels_per_board)
 
         # Open the tree and retrieve the signal within the specified
