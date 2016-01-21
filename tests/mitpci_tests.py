@@ -25,6 +25,27 @@ def test__getDigitizerBoard():
     tools.assert_equal(Signal(shot, 16)._digitizer_board, 'DT216_8')
 
 
+def test__getNodeName():
+    # Use the default "model" tree
+    shot = -1
+
+    # Boundaries of board 7
+    tools.assert_equal(
+        Signal(shot, 1)._node_name,
+        '.HARDWARE:DT216_7:INPUT_01')
+    tools.assert_equal(
+        Signal(shot, 8)._node_name,
+        '.HARDWARE:DT216_7:INPUT_08')
+
+    # Boundaries of board 8
+    tools.assert_equal(
+        Signal(shot, 9)._node_name,
+        '.HARDWARE:DT216_7:INPUT_01')
+    tools.assert_equal(
+        Signal(shot, 16)._node_name,
+        '.HARDWARE:DT216_7:INPUT_08')
+
+
 def test__getSampleRate():
     # Chris likes this shot - will probably be available for tests forever
     shot = 150000

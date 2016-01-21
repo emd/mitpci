@@ -19,13 +19,17 @@ class Signal(object):
         self.shot = shot
         self.channel = channel
 
+        # Check that `self.channel` is valid
         self._checkChannels(channels_per_board=channels_per_board)
 
+        # Obtain digitizer board and signal node name for `self.channel`
         self._digitizer_board = self._getDigitizerBoard(
             channels_per_board=channels_per_board)
-        # self._node_name = self.getNodeName(
-        #     channels_per_board=channels_per_board)
+        self._node_name = self.getNodeName(
+            channels_per_board=channels_per_board)
 
+        # Open the tree and retrieve the signal within the specified
+        # time window and with the specified sampling rate
         mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
         self.Fs, self._downsample = self._getSampleRate(mds_tree, Fs=Fs)
 
@@ -46,6 +50,12 @@ class Signal(object):
         else:
             return 'DT216_8'
 
+    def _getNodeName(self, channels_per_board=8):
+        board_channel = 1 + ((self.channel - 1) % channels_per_board)
+        node_name = '.HARDWARE:%s:INPUT_%s' % (self._digitizer_board,
+                                               str(board_channel).zfill(2))
+        return node_name
+
     def _getSampleRate(self, mds_tree, Fs=None):
         'Get signal sampling rate, including effects of desired downsampling.'
         node = mds_tree.getNode(
@@ -63,12 +73,6 @@ class Signal(object):
             downsample = 1
 
         return (digitizer_rate / downsample, downsample)
-
-    # def _getNodeName(self, channels_per_board=8):
-    #     board_channel = 1 + ((self.channel - 1) % channels_per_board)
-    #     node_name = '.HARDWARE:%s:INPUT_%s' % (self._digitizer_board,
-    #                                            str(board_channel).zfill(2))
-    #     return node_name
 
     def getInitialTime(self):
         pass
