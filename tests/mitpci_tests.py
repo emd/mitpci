@@ -88,6 +88,10 @@ def test_getSlice():
     # Create `Signal` object
     sig = Signal(shot, 1)
 
+    # ValueError tests
+    tools.assert_raises(ValueError, sig._getSlice, *[x], **{'tlim': [1]})
+    tools.assert_raises(ValueError, sig._getSlice, *[x], **{'tlim': [1, 2, 3]})
+
     # -------------------------------------------------------------------------
     # (1) No downsampling, trivial `t0_dig`
     # -------------------------------------------------------------------------
@@ -184,12 +188,6 @@ def test_getSlice():
     tools.assert_equal(
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
         slice(imin, tlim[1] - np.floor(t0_dig), sig._downsample))
-
-    # -------------------------------------------------------------------------
-    # (4) ValueError tests
-    # -------------------------------------------------------------------------
-    tools.assert_raises(ValueError, Signal, *[shot, 1], **{'tlim': [1]})
-    tools.assert_raises(ValueError, Signal, *[shot, 1], **{'tlim': [1, 2, 3]})
 
 
 def test__getSignal():
