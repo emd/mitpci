@@ -214,12 +214,20 @@ def test__getSignal():
     Fs_dig = sig.Fs * sig._downsample  # digitization rate
 
     # `t_1` is the time corresponding to `x[-1]`
-    t_1 = np.floor((tlim[1] - sig.t0) * Fs_dig) / Fs_dig
+    t_1 = sig.t0 + np.floor((tlim[1] - sig.t0) * Fs_dig) / Fs_dig
 
     # Number of samples in *full* digitized record
     N_full = ((t_1 - sig.t0) * Fs_dig) + 1
 
     # Number of records in the retrieved, *downsampled* record
     N_retrieved = np.floor(N_full / sig._downsample)
+
+    # For internal self-consistency. If `N_retrieved is *not* equal to
+    # its integer representation, the above calculations for the expected
+    # signal length are incorrect
+    tools.assert_equal(
+        N_retrieved,
+        np.int(N_retrieved),
+        msg='`N_retrieved` should be an integer; test calculations incorrect.')
 
     tools.assert_equal(N_retrieved, len(sig.x))
