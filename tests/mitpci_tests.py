@@ -118,36 +118,36 @@ def test_getSlice():
         sig._getSlice(x, tlim=tlim, t0_dig=0.),
         slice(imin, tlim[1] + 1, 1))
 
-    # # -------------------------------------------------------------------------
-    # # (2) Downsampling, trivial `t0_dig`
-    # # -------------------------------------------------------------------------
-    # # Vary `sig.Fs` and `sig._downsample` inversely such that
-    # # the `tlim` values can stay the same as above.
-    # sig._downsample = 2  # Note: must be an *integer*
-    # sig.Fs /= sig._downsample
+    # -------------------------------------------------------------------------
+    # (2) Downsampling, trivial `t0_dig`
+    # -------------------------------------------------------------------------
+    # Vary `sig.Fs` and `sig._downsample` inversely such that
+    # the `tlim` values can stay the same as above.
+    sig._downsample = 2  # Note: must be an *integer*
+    sig.Fs /= sig._downsample
 
-    # # (2a) Downsampling only
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=None, t0_dig=0.),
-    #     slice(0, len(x) + 1, sig._downsample))
+    # (2a) No actual slicing
+    tools.assert_equal(
+        sig._getSlice(x, tlim=None, t0_dig=0.),
+        slice(imin, imax, sig._downsample))
 
-    # # (2b) Slicing from both ends, downsampling
-    # tlim = [1, 9]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=0.),
-    #     slice(tlim[0], tlim[1] + 1, sig._downsample))
+    # (2b) Slicing from both ends, no downsampling
+    tlim = [1, 8]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=0.),
+        slice(tlim[0], tlim[1] + 1, sig._downsample))
 
-    # # (2c) Slicing from lower end only, downsampling
-    # tlim = [1, 10.1]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=0.),
-    #     slice(tlim[0], imax, sig._downsample))
+    # (2c) Slicing from lower end only, no downsampling
+    tlim = [1, 10 + np.finfo(float).eps]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=0.),
+        slice(tlim[0], imax, sig._downsample))
 
-    # # (2d) Slicing from upper end only, downsampling
-    # tlim = [-0.1, 9]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=0.),
-    #     slice(imin, tlim[1], sig._downsample))
+    # (2d) Slicing from upper end only, no downsampling
+    tlim = [-1 - np.finfo(float).eps, 8]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=0.),
+        slice(imin, tlim[1] + 1, sig._downsample))
 
     # # -------------------------------------------------------------------------
     # # (3) Downsampling, non-trivial `t0_dig`
