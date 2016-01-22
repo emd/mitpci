@@ -92,12 +92,22 @@ class Signal(object):
             # Find slicing indices such that:
             #   (a) `x[ilo:ihi]` corresponds to the signal within `tlim`, and
             #   (b) `ilo` and `ihi` are bounded by `imin` and `imax`
+            #
             ilo = np.max([
                 imin,
                 np.ceil((tlim[0] - t0_dig) * Fs_dig)])
-            ihi = np.min([
-                imax,
-                np.ceil((tlim[1] - t0_dig) * Fs_dig)])
+
+            # If `ihi_exact` is an integer, then `tlim[1]`
+            # sits *exactly* on a digitized point; to ensure
+            # we include this point in our slice, we should
+            # augment `ihi_exact` by +1. If `ihi_exact` is
+            # *not* an integer, the ceiling operation takes
+            # care of this concern for us.
+            ihi_exact = (tlim[1] - t0_dig) * Fs_dig
+            if ihi_exact != np.int(ihi_exact):
+                ihi = np.min([imax, np.ceil(ihi_exact)])
+            else:
+                ihi = np.min([imax, ihi_exact + 1])
         else:
             ilo = imin
             ihi = imax
