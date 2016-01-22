@@ -11,6 +11,8 @@ def test__checkChannels():
     tools.assert_raises(ValueError, Signal, *[shot, 0])
     tools.assert_raises(ValueError, Signal, *[shot, 17])
 
+    return
+
 
 def test__getDigitizerBoard():
     # Use the default "model" tree
@@ -23,6 +25,8 @@ def test__getDigitizerBoard():
     # Boundaries of board 8
     tools.assert_equal(Signal(shot, 9)._digitizer_board, 'DT216_8')
     tools.assert_equal(Signal(shot, 16)._digitizer_board, 'DT216_8')
+
+    return
 
 
 def test__getNodeName():
@@ -44,6 +48,8 @@ def test__getNodeName():
     tools.assert_equal(
         Signal(shot, 16)._node_name,
         '.HARDWARE:DT216_8:INPUT_08')
+
+    return
 
 
 def test__getSampleRate():
@@ -74,6 +80,8 @@ def test__getSampleRate():
 
     # "Negative" downsampling should raise a ValueError
     tools.assert_raises(ValueError, Signal, *[shot, 1], **{'Fs': -4e6})
+
+    return
 
 
 def test_getSlice():
@@ -189,6 +197,8 @@ def test_getSlice():
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
         slice(imin, tlim[1] - np.floor(t0_dig), sig._downsample))
 
+    return
+
 
 def test__getSignal():
     # Chris likes this shot - will probably be available for tests forever
@@ -231,3 +241,5 @@ def test__getSignal():
         msg='`N_retrieved` should be an integer; test calculations incorrect.')
 
     tools.assert_equal(N_retrieved, len(sig.x))
+
+    return
