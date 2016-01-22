@@ -126,7 +126,7 @@ def test_getSlice():
     sig._downsample = 2  # Note: must be an *integer*
     sig.Fs /= sig._downsample
 
-    # (2a) No actual slicing
+    # (2a) Downsampling only
     tools.assert_equal(
         sig._getSlice(x, tlim=None, t0_dig=0.),
         slice(imin, imax, sig._downsample))
@@ -149,36 +149,43 @@ def test_getSlice():
         sig._getSlice(x, tlim=tlim, t0_dig=0.),
         slice(imin, tlim[1] + 1, sig._downsample))
 
-    # # -------------------------------------------------------------------------
-    # # (3) Downsampling, non-trivial `t0_dig`
-    # # -------------------------------------------------------------------------
-    # # Note: `np.ceil(t0_dig) = 1` implies that all slice start and stop values
-    # # should be shiftedj
-    # t0_dig = 0.5
+    # -------------------------------------------------------------------------
+    # (3) Downsampling, non-trivial `t0_dig`
+    # -------------------------------------------------------------------------
+    # Slice start and stop values that are *within* the digital record
+    # should be decremented by `np.ceil(t0_dig)` relative to the
+    # values in (2)
+    t0_dig = 0.5
 
-    # # (3a) Downsampling only; `t0_dig` should *not* affect this computation,
-    # # as `t0_dig` only comes into play when `tlim` is not None
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=None, t0_dig=t0_dig),
-    #     slice(0, len(x) + 1, sig._downsample))
+    # (3a) Downsampling only; `t0_dig` does not come into play
+    # when `tlim` is None
+    tools.assert_equal(
+        sig._getSlice(x, tlim=None, t0_dig=t0_dig),
+        slice(imin, imax, sig._downsample))
 
-    # # (3b) Slicing from both ends, downsampling
-    # tlim = [1, 9]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-    #     slice(tlim[0], tlim[1] + 1, sig._downsample))
+    # (3b) Slicing from both ends, no downsampling
+    tlim = [2, 8]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
+        slice(tlim[0] - np.ceil(t0_dig),
+              tlim[1] + 1 - np.ceil(t0_dig),
+              sig._downsample))
 
-    # # (3c) Slicing from lower end only, downsampling
-    # tlim = [1, 10.1]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-    #     slice(tlim[0], imax, sig._downsample))
+    # (3c) Slicing from lower end only, no downsampling
+    tlim = [2, 10 + np.finfo(float).eps + t0_dig]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
+        slice(tlim[0] - np.ceil(t0_dig), imax, sig._downsample))
 
-    # # (3d) Slicing from upper end only, downsampling
-    # tlim = [-0.1, 9]
-    # tools.assert_equal(
-    #     sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-    #     slice(imin, tlim[1], sig._downsample))
+    # (3d) Slicing from upper end only, no downsampling
+    tlim = [-1 - np.finfo(float).eps + t0_dig, 8]
+    tools.assert_equal(
+        sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
+        slice(imin, tlim[1] + 1 - np.ceil(t0_dig), sig._downsample))
+
+    # -------------------------------------------------------------------------
+    # (4) ValueError tests
+    # -------------------------------------------------------------------------
 
 
 def test__getSignal():
