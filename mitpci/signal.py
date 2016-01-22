@@ -32,8 +32,7 @@ class Signal(object):
         # time window and with the specified sampling rate
         mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
         self.Fs, self._downsample = self._getSampleRate(mds_tree, Fs=Fs)
-
-        pass
+        # self.t0, self.x = self._getSignal(mds_tree, tlim=tlim)
 
     def _checkChannels(self, channels_per_board=8):
         'Ensure that `self.channel` corresponds to a physical mitpci channel.'
@@ -74,11 +73,56 @@ class Signal(object):
 
         return (digitizer_rate / downsample, downsample)
 
-    def getInitialTime(self):
-        pass
+    def _getSlice(self, x, tlim=None, t0_dig=0.):
+        'Get slice for signal retrieval between `tlim` at rate `self.Fs`.'
+        # Minimum and maximum values for slicing `x`
+        imin = 0
+        imax = len(x)
 
-    def getSignal(self):
-        pass
+        if tlim is not None:
+            # Ensure limits in time are correctly sized and sorted
+            if len(tlim) != 2:
+                raise ValueError('`tlim` must be an iterable of length 2.')
+            else:
+                tlim = np.sort(tlim)
+
+            # Digitization rate
+            Fs_dig = self.Fs * self._downsample
+
+            # Find slicing indices such that:
+            #   (a) `x[ilo:ihi]` corresponds to the signal within `tlim`, and
+            #   (b) `ilo` and `ihi` are bounded by `imin` and `imax`
+            ilo = np.max([
+                imin,
+                np.ceil((tlim[0] - t0_dig) * Fs_dig)])
+            ihi = np.min([
+                imax,
+                np.ceil((tlim[1] - t0_dig) * Fs_dig)])
+        else:
+            ilo = imin
+            ihi = imax
+
+        return slice(ilo, ihi, self._downsample)
+
+    def _getSignal(self, mds_tree, tlim=None):
+        'Get signal between `tlim` at sampling rate `self.Fs`.'
+        # Retrieve full raw signal
+        node = mds_tree.getNode(self._node_name)
+        x = node.raw_of().data()
+
+        # Determine time at the beginning of digitization record
+        t0_dig = mds_tree.getNode(
+            '.HARDWARE:%s:DI3' % self._digitizer_board).data()
+
+        # Slice in time, if desired
+        if (tlim is not None) or (self._downsample > 1):
+            sl = self._getSlice(x, tlim=tlim, t0_dig=t0_dig)
+            x = x[sl]
+            t0 = t0_dig + (sl.start / (self.Fs * self._downsample))
+        else:
+            t0 = t0_dig
+
+        return t0, x
 
     @property
     def t(self):
