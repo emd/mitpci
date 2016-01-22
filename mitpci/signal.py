@@ -32,7 +32,8 @@ class Signal(object):
         # time window and with the specified sampling rate
         mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
         self.Fs, self._downsample = self._getSampleRate(mds_tree, Fs=Fs)
-        self.t0, self.x = self._getSignal(mds_tree, tlim=tlim)
+        if shot != -1:
+            self.t0, self.x = self._getSignal(mds_tree, tlim=tlim)
 
     def _checkChannels(self, channels_per_board=8):
         'Ensure that `self.channel` corresponds to a physical mitpci channel.'
