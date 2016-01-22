@@ -152,10 +152,12 @@ def test_getSlice():
     # -------------------------------------------------------------------------
     # (3) Downsampling, non-trivial `t0_dig`
     # -------------------------------------------------------------------------
-    # Slice start and stop values that are *within* the digital record
-    # should be decremented by `np.ceil(t0_dig)` relative to the
-    # values in (2)
-    t0_dig = 0.5
+    # Lower slicing indices *within* the bounds of the array should be
+    # decremented by `np.floor(t0_dig)` relative to (2), and
+    # upper slicing indices *within* the bounds of the array should be
+    # decremented by `np.ceil(t0_dig)` (Note that this is equivalent to
+    # (`1 + np.floor(t0_dig)`) relative to (2).
+    t0_dig = 1.5
 
     # (3a) Downsampling only; `t0_dig` does not come into play
     # when `tlim` is None
@@ -167,21 +169,21 @@ def test_getSlice():
     tlim = [2, 8]
     tools.assert_equal(
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-        slice(tlim[0] - np.ceil(t0_dig),
-              tlim[1] + 1 - np.ceil(t0_dig),
+        slice(tlim[0] - np.floor(t0_dig),
+              tlim[1] - np.floor(t0_dig),
               sig._downsample))
 
     # (3c) Slicing from lower end only, no downsampling
     tlim = [2, 10 + np.finfo(float).eps + t0_dig]
     tools.assert_equal(
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-        slice(tlim[0] - np.ceil(t0_dig), imax, sig._downsample))
+        slice(tlim[0] - np.floor(t0_dig), imax, sig._downsample))
 
     # (3d) Slicing from upper end only, no downsampling
     tlim = [-1 - np.finfo(float).eps + t0_dig, 8]
     tools.assert_equal(
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
-        slice(imin, tlim[1] + 1 - np.ceil(t0_dig), sig._downsample))
+        slice(imin, tlim[1] - np.floor(t0_dig), sig._downsample))
 
     # -------------------------------------------------------------------------
     # (4) ValueError tests
