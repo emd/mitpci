@@ -188,6 +188,8 @@ def test_getSlice():
     # -------------------------------------------------------------------------
     # (4) ValueError tests
     # -------------------------------------------------------------------------
+    tools.assert_raises(ValueError, Signal, *[shot, 1], **{'tlim': [1]})
+    tools.assert_raises(ValueError, Signal, *[shot, 1], **{'tlim': [1, 2, 3]})
 
 
 def test__getSignal():
