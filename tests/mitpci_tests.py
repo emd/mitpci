@@ -191,9 +191,35 @@ def test_getSlice():
 
 
 def test__getSignal():
-    # downsampling - how to test easily/effectively?
-    # value error for wrong size t_lim
-    # slicing limits - for both inside and outside record length,
-    #   on both sides of record; how to test easily/effectively?
-    # returned t0 value
-    pass
+    # Chris likes this shot - will probably be available for tests forever
+    shot = 150000
+
+    # Slice signal by (a) downsampling (Fs_dig = 4e6 in this shot) and
+    # (b) looking at only a portion of the digitized record
+    tlim = [1, 2]
+    sig = Signal(shot, 1, Fs=1e6, tlim=tlim)
+
+    # -------------------------------------------------------------------------
+    # (1) Check `sig.t0`
+    # -------------------------------------------------------------------------
+    # `sig.t0` should be bracketed (inclusive) below by `tlim[0]` and
+    # bracketed (non-inclusive) above by
+    # `tlim[0] + (1. / (sig.Fs * sig._downsample))`
+    tools.assert_less_equal(tlim[0], sig.t0)
+    tools.assert_less(sig.t0, tlim[0] + (1. / (sig.Fs * sig._downsample)))
+
+    # -------------------------------------------------------------------------
+    # (2) Check that length of `sig.x` is correct
+    # -------------------------------------------------------------------------
+    Fs_dig = sig.Fs * sig._downsample  # digitization rate
+
+    # `t_1` is the time corresponding to `x[-1]`
+    t_1 = np.floor((tlim[1] - sig.t0) * Fs_dig) / Fs_dig
+
+    # Number of samples in *full* digitized record
+    N_full = ((t_1 - sig.t0) * Fs_dig) + 1
+
+    # Number of records in the retrieved, *downsampled* record
+    N_retrieved = np.floor(N_full / sig._downsample)
+
+    tools.assert_equal(N_retrieved, len(sig.x))
