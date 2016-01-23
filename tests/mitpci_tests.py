@@ -84,7 +84,7 @@ def test__getSampleRate():
     return
 
 
-def test_getSlice():
+def test__getSlice():
     # Use the default "model" tree
     shot = -1
 
@@ -241,5 +241,41 @@ def test__getSignal():
         msg='`N_retrieved` should be an integer; test calculations incorrect.')
 
     tools.assert_equal(N_retrieved, len(sig.x))
+
+    return
+
+
+def test_t():
+    # Use the default "model" tree (Don't load signal from MDSplus)
+    shot = -1
+
+    # Create `Signal` object
+    sig = Signal(shot, 1)
+
+    # Now, overwrite properties of `sig` to easily test `_getSlice()` method
+    sig.Fs = 1.
+    sig._downsample = 1
+    sig.t0 = 0
+    sig.x = np.arange(10)
+
+    # (1) `sig.t` is equal to `sig.x` for the above parameters
+    np.testing.assert_equal(sig.t, sig.x)
+
+    # (2) Linear shift
+    sig.t0 += 1
+    np.testing.assert_equal(sig.t, sig.x + 1)
+
+    # (3) Double the sampling rate at which signal is retrieved
+    sig.Fs *= 2
+    np.testing.assert_equal(sig.t, (sig.x / sig.Fs) + 1)
+
+    # (4) The time base computed by the `sig.t` property corresponds
+    # to the retrieved points in `sig.x`, which may be downsampled
+    # from the full digitized record. The downsampling is folded
+    # into the sampling rate `sig.Fs` at which the signal is retrieved,
+    # however, so altering `sig._downsample` should *not* affect `sig.t`;
+    # that is, `sig.t` should remain unchanged from (3)
+    sig._downsample = 2
+    np.testing.assert_equal(sig.t, (sig.x / sig.Fs) + 1)
 
     return
