@@ -38,10 +38,10 @@ class Signal(object):
 
     t - array-like, (`N`,)
         The times corresponding to the points in the retrieved signal.
-        This attribute is actually implemented as a class property
-        so that the time-base is generated on the fly as needed and
-        is not stored as an object property; this helps save memory and
-        processing time.
+        This attribute is actually implemented as a method so that the
+        time-base is generated on the fly as needed and is not stored
+        as an object property; this helps save memory and processing time,
+        as we do not typically look at the raw signal vs. time.
         [t] = s
 
     '''
@@ -106,7 +106,8 @@ class Signal(object):
             Similarly, if `tlim[1]` exceeds the final digitization time,
             the retrieved signal will end with the final digitized point.
 
-            A ValueError is raised if `len(tlim) != 2`.
+            If `tlim` is not `None` and it is *not* a length-two array,
+            a ValueError is raised.
 
             Note: the "raw" signal is returned from the MDSplus server.
             Josh Stillerman and Tom Fredian (of MIT, and the developers
