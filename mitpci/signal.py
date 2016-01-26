@@ -154,6 +154,7 @@ class Signal(object):
             return 'DT216_8'
 
     def _getNodeName(self, channels_per_board=8):
+        'Get node name corresponding to signal digitized in `self.channel`.'
         board_channel = 1 + ((self.channel - 1) % channels_per_board)
         node_name = '.HARDWARE:%s:INPUT_%s' % (self._digitizer_board,
                                                str(board_channel).zfill(2))
