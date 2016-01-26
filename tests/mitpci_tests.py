@@ -4,7 +4,7 @@ import MDSplus as mds
 from mitpci.signal import Signal
 
 
-def test__checkChannels():
+def test__checkChannel():
     # Use the default "model" tree
     shot = -1
 

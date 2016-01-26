@@ -123,7 +123,7 @@ class Signal(object):
         self.channel = channel
 
         # Check that `self.channel` is valid
-        self._checkChannels(channels_per_board=channels_per_board)
+        self._checkChannel(channels_per_board=channels_per_board)
 
         # Obtain digitizer board and signal node name for `self.channel`
         self._digitizer_board = self._getDigitizerBoard(
@@ -138,7 +138,7 @@ class Signal(object):
         if shot != -1:
             self.t0, self.x = self._getSignal(mds_tree, tlim=tlim)
 
-    def _checkChannels(self, channels_per_board=8):
+    def _checkChannel(self, channels_per_board=8):
         'Ensure that `self.channel` corresponds to a physical mitpci channel.'
         if (self.channel <= 0) or (self.channel > (2 * channels_per_board)):
             raise ValueError(
