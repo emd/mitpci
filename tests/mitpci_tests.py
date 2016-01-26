@@ -1,5 +1,6 @@
 from nose import tools
 import numpy as np
+import MDSplus as mds
 from mitpci.signal import Signal
 
 
@@ -277,5 +278,27 @@ def test_t():
     # that is, `sig.t()` should remain unchanged from (3)
     sig._downsample = 2
     np.testing.assert_equal(sig.t(), (sig.x / sig.Fs) + 1)
+
+    return
+
+
+def test_volts_per_bit():
+    # Chris likes this shot - will probably be available for tests forever
+    shot = 150000
+
+    # Create `Signal` object
+    sig = Signal(shot, 1)
+
+    # Read bits-to-voltage conversion factor from tree.
+    # Note that the conversion factor retrieved from the tree
+    # applies uniformly to *all* of the channels on a given board,
+    # while the `Signal.volts_per_bit` property allows specification
+    # of the conversion factor on a channel-by-channel basis,
+    # regardless of their board location.
+    mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+    node = mds_tree.getNode('.HARDWARE:%s:TO_VOLTS' % sig._digitizer_board)
+    tree_conversion_factor = node.data()
+
+    tools.assert_equal(sig.volts_per_bit, tree_conversion_factor)
 
     return

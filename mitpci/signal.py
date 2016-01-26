@@ -61,10 +61,10 @@ class Signal(object):
             raised if `channel <= 0` or `channel > 2 * channels_per_board`.
 
         channels_per_board - int
-           The number of channels digitized per digitizer board.
-           Currently, there are two digitizer boards, each of which
-           digitizes 8 channels. The value of `channels_per_board`
-           determines whether the value of `channel` is valid or not.
+            The number of channels digitized per digitizer board.
+            Currently, there are two digitizer boards, each of which
+            digitizes 8 channels. The value of `channels_per_board`
+            determines whether the value of `channel` is valid or not.
 
         Fs - float
             The desired sampling rate at which to retrieve the signal.
@@ -241,3 +241,41 @@ class Signal(object):
     def t(self):
         'Get times for points in `self.x`.'
         return self.t0 + (np.arange(len(self.x)) / self.Fs)
+
+    @property
+    def volts_per_bit(self,  Vpp_max=8.):
+        '''Get the volts per bit of retrieved signal.
+
+        Parameters:
+        -----------
+        Vpp_max - float
+            The maximum peak-to-peak voltage capable of being digitized
+            on `self.channel` during `self.shot`.
+            [Vpp_range] = V
+
+        Returns:
+        --------
+        volts_per_bit - float
+            Conversion factor from bits to volts for digitized signal.
+            [volts_per_bit] = V / bit
+
+        Note: The mitpci tree stores the bits-to-volts conversion factor
+        for a given *board*. However, such an implementation fails
+        if the voltage range varies from channel-to-channel on a given board.
+        (For example, we may decrease the voltage range on the heterodyne
+        interferometer channels to use more of the digitizer's dynamic range).
+        The `volts_per_bit` property is a midway point between the
+        current tree structure and a future tree structure that supports
+        channel-to-channel variation on a single board.
+
+        '''
+        # The mitpci system uses a "16 bit" digitizer;
+        # (Note, however, that the two least significant bits
+        # *cannot* be changed, so the minimum spacing between
+        # non-equal digitized values is 4 bits. As this is a
+        # quirk of the least significant bits, it does *not*
+        # influence the conversion from bits to volts).
+        bits = 16
+
+        # Avoid integer division
+        return np.float(Vpp_max) / (2 ** bits)
