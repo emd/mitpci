@@ -36,10 +36,14 @@ class Signal(object):
         then `Signal.x[0]` = x(t0)
         [t0] = s
 
-    t - array-like, (`N`,)
-        The times corresponding to the points in the retrieved signal.
-        This attribute is actually implemented as a method so that the
-        time-base is generated on the fly as needed and is not stored
+    volts_per_bit - float
+        The conversion factor from bits to volts for the digitized signal.
+        [volts_per_bit] = V / bit
+
+    Methods:
+    --------
+    t - returns retrieved signal time-base, array-like, (`N`,)
+        The time-base is generated on the fly as needed and is not stored
         as an object property; this helps save memory and processing time,
         as we do not typically look at the raw signal vs. time.
         [t] = s
