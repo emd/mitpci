@@ -1,10 +1,5 @@
-'''This module implements a class for interacting with the signals
-digitized by the `mitpci` computer system.
-
-The `mitpci` computer system digitizes data from MIT's (a) phase contrast
-imaging (PCI) and (b) heterodyne interferometer systems. The systems share
-a beam path through the DIII-D vessel and a digitizer, but they use different
-interference schemes and detectors to make their respective measurements.
+'''This module implements a class for retrieving signals digitized by
+the mitpci system.
 
 '''
 
@@ -14,13 +9,126 @@ import MDSplus as mds
 
 
 class Signal(object):
+    '''An object corresponding to the signal retrieved from the mitpci system.
+
+    Attributes:
+    -----------
+    shot - int
+        The shot number of the retrieved signal.
+
+    channel - int
+        The channel number of the retrieved signal.
+
+    x - array-like, (`N`,)
+        The retrieved signal. Note that this is the "raw" signal and
+        has the units of bits.
+        [x] = bits
+
+    Fs - float
+        The sampling rate at which the signal was retrieved. Note that this
+        may be smaller than the signal's initial digitization rate; that is,
+        the retrieved signal may be downsampled relative to the full signal.
+        [Fs] = samples / second
+
+    t0 - float
+        The time corresponding to the first retrieved point in the signal;
+        that is, if x(t) corresponds to the continuous signal being sampled,
+        then `Signal.x[0]` = x(t0)
+        [t0] = s
+
+    volts_per_bit - float
+        The conversion factor from bits to volts for the digitized signal.
+        [volts_per_bit] = V / bit
+
+    Methods:
+    --------
+    t - returns retrieved signal time-base, array-like, (`N`,)
+        The time-base is generated on the fly as needed and is not stored
+        as an object property; this helps save memory and processing time,
+        as we do not typically look at the raw signal vs. time.
+        [t] = s
+
+    '''
     def __init__(self, shot, channel, channels_per_board=8,
                  Fs=None, tlim=None):
+        '''Create an instance of the `Signal` class.
+
+        Input parameters:
+        -----------------
+        shot - int
+            The shot number of the signal to be retrieved.
+
+        channel - int
+            The channel number of the signal to be retrieved.
+            Currently, there are two digitizer boards, each of which
+            digitizes `channels_per_board` channels. A ValueError is
+            raised if `channel <= 0` or `channel > 2 * channels_per_board`.
+
+        channels_per_board - int
+            The number of channels digitized per digitizer board.
+            Currently, there are two digitizer boards, each of which
+            digitizes 8 channels. The value of `channels_per_board`
+            determines whether the value of `channel` is valid or not.
+
+        Fs - float
+            The desired sampling rate at which to retrieve the signal.
+            This may differ from the original digitization rate, `Fs_dig`;
+            that is, the retrieved signal can be downsampled. While
+            the specified `Fs` can be any positive value, the internal
+            methods of this class will process the user's request and
+            produce a *realized* sampling rate `Signal.Fs` that is
+            subject to the following two constraints:
+
+                (1) `Signal.Fs <= Fs_dig`, and
+                (2) `Signal. Fs / Fs_dig = m`, where `m` is an integer
+
+            `Fs <= 0` raises a ValueError.
+
+            Note: the "raw" signal is returned from the MDSplus server.
+            Josh Stillerman and Tom Fredian (of MIT, and the developers
+            of MDSplus) informed me that there is no way to read in only
+            a portion of the raw data. Thus, the entire raw signal must be
+            read into memory, and the signal will subsequently be sliced
+            in time if needed. As a result, specifying a small `Fs` will
+            not save computational time but will end up saving memory.
+
+            [Fs] = samples / second
+
+        tlim - array-like, (2,)
+            The lower and upper limits in time for which the signal
+            will be retrieved.
+
+            The specified `tlim` values will always bracket the retrieved
+            signal. That is, if `tlim[0]` does not correspond to an exact
+            digitization time, then the initial time returned (`Signal.t0`)
+            will be the closest digitization time *greater* than `tlim[0]`.
+            Similarly, if `tlim[1]` does not correspond to an exact
+            digitization time, then the final time (`Signal.t[-1]`) will be
+            the closest digitization time *less* than `tlim[1]`. Further,
+            if `tlim[0]` is less than the initial digitization time,
+            the retrieved signal will begin with the initial digitized point.
+            Similarly, if `tlim[1]` exceeds the final digitization time,
+            the retrieved signal will end with the final digitized point.
+
+            If `tlim` is not `None` and it is *not* a length-two array,
+            a ValueError is raised.
+
+            Note: the "raw" signal is returned from the MDSplus server.
+            Josh Stillerman and Tom Fredian (of MIT, and the developers
+            of MDSplus) informed me that there is no way to read in only
+            a portion of the raw data. Thus, the entire raw signal must be
+            read into memory, and the signal will subsequently be sliced
+            in time if needed. As a result, specifying a small `tlim` will
+            not save computational time but will end up saving memory.
+
+            [tlim] = s
+
+        '''
         self.shot = shot
         self.channel = channel
 
         # Check that `self.channel` is valid
-        self._checkChannels(channels_per_board=channels_per_board)
+        self._checkChannel(channels_per_board=channels_per_board)
 
         # Obtain digitizer board and signal node name for `self.channel`
         self._digitizer_board = self._getDigitizerBoard(
@@ -35,7 +143,7 @@ class Signal(object):
         if shot != -1:
             self.t0, self.x = self._getSignal(mds_tree, tlim=tlim)
 
-    def _checkChannels(self, channels_per_board=8):
+    def _checkChannel(self, channels_per_board=8):
         'Ensure that `self.channel` corresponds to a physical mitpci channel.'
         if (self.channel <= 0) or (self.channel > (2 * channels_per_board)):
             raise ValueError(
@@ -51,6 +159,7 @@ class Signal(object):
             return 'DT216_8'
 
     def _getNodeName(self, channels_per_board=8):
+        'Get node name corresponding to signal digitized in `self.channel`.'
         board_channel = 1 + ((self.channel - 1) % channels_per_board)
         node_name = '.HARDWARE:%s:INPUT_%s' % (self._digitizer_board,
                                                str(board_channel).zfill(2))
@@ -135,6 +244,44 @@ class Signal(object):
 
         return t0, x
 
-    @property
     def t(self):
-        pass
+        'Get times for points in `self.x`.'
+        return self.t0 + (np.arange(len(self.x)) / self.Fs)
+
+    @property
+    def volts_per_bit(self,  Vpp_max=8.):
+        '''Get the volts per bit of retrieved signal.
+
+        Parameters:
+        -----------
+        Vpp_max - float
+            The maximum peak-to-peak voltage capable of being digitized
+            on `self.channel` during `self.shot`.
+            [Vpp_range] = V
+
+        Returns:
+        --------
+        volts_per_bit - float
+            Conversion factor from bits to volts for digitized signal.
+            [volts_per_bit] = V / bit
+
+        Note: The mitpci tree stores the bits-to-volts conversion factor
+        for a given *board*. However, such an implementation fails
+        if the voltage range varies from channel-to-channel on a given board.
+        (For example, we may decrease the voltage range on the heterodyne
+        interferometer channels to use more of the digitizer's dynamic range).
+        The `volts_per_bit` property is a midway point between the
+        current tree structure and a future tree structure that supports
+        channel-to-channel variation on a single board.
+
+        '''
+        # The mitpci system uses a "16 bit" digitizer;
+        # (Note, however, that the two least significant bits
+        # *cannot* be changed, so the minimum spacing between
+        # non-equal digitized values is 4 bits. As this is a
+        # quirk of the least significant bits, it does *not*
+        # influence the conversion from bits to volts).
+        bits = 16
+
+        # Avoid integer division
+        return np.float(Vpp_max) / (2 ** bits)

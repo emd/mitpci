@@ -1,15 +1,18 @@
 from nose import tools
 import numpy as np
+import MDSplus as mds
 from mitpci.signal import Signal
 
 
-def test__checkChannels():
+def test__checkChannel():
     # Use the default "model" tree
     shot = -1
 
     #  Channels < 0 or > 16 should raise ValueError
     tools.assert_raises(ValueError, Signal, *[shot, 0])
     tools.assert_raises(ValueError, Signal, *[shot, 17])
+
+    return
 
 
 def test__getDigitizerBoard():
@@ -23,6 +26,8 @@ def test__getDigitizerBoard():
     # Boundaries of board 8
     tools.assert_equal(Signal(shot, 9)._digitizer_board, 'DT216_8')
     tools.assert_equal(Signal(shot, 16)._digitizer_board, 'DT216_8')
+
+    return
 
 
 def test__getNodeName():
@@ -44,6 +49,8 @@ def test__getNodeName():
     tools.assert_equal(
         Signal(shot, 16)._node_name,
         '.HARDWARE:DT216_8:INPUT_08')
+
+    return
 
 
 def test__getSampleRate():
@@ -75,8 +82,10 @@ def test__getSampleRate():
     # "Negative" downsampling should raise a ValueError
     tools.assert_raises(ValueError, Signal, *[shot, 1], **{'Fs': -4e6})
 
+    return
 
-def test_getSlice():
+
+def test__getSlice():
     # Use the default "model" tree
     shot = -1
 
@@ -189,6 +198,8 @@ def test_getSlice():
         sig._getSlice(x, tlim=tlim, t0_dig=t0_dig),
         slice(imin, tlim[1] - np.floor(t0_dig), sig._downsample))
 
+    return
+
 
 def test__getSignal():
     # Chris likes this shot - will probably be available for tests forever
@@ -231,3 +242,63 @@ def test__getSignal():
         msg='`N_retrieved` should be an integer; test calculations incorrect.')
 
     tools.assert_equal(N_retrieved, len(sig.x))
+
+    return
+
+
+def test_t():
+    # Use the default "model" tree (Don't load signal from MDSplus)
+    shot = -1
+
+    # Create `Signal` object
+    sig = Signal(shot, 1)
+
+    # Now, overwrite properties of `sig` to easily test `_getSlice()` method
+    sig.Fs = 1.
+    sig._downsample = 1
+    sig.t0 = 0
+    sig.x = np.arange(10)
+
+    # (1) `sig.t()` is equal to `sig.x` for the above parameters
+    np.testing.assert_equal(sig.t(), sig.x)
+
+    # (2) Linear shift
+    sig.t0 += 1
+    np.testing.assert_equal(sig.t(), sig.x + 1)
+
+    # (3) Double the sampling rate at which signal is retrieved
+    sig.Fs *= 2
+    np.testing.assert_equal(sig.t(), (sig.x / sig.Fs) + 1)
+
+    # (4) The time base computed by the `sig.t()` method corresponds
+    # to the retrieved points in `sig.x`, which may be downsampled
+    # from the full digitized record. The downsampling is folded
+    # into the sampling rate `sig.Fs` at which the signal is retrieved,
+    # however, so altering `sig._downsample` should *not* affect `sig.t()`;
+    # that is, `sig.t()` should remain unchanged from (3)
+    sig._downsample = 2
+    np.testing.assert_equal(sig.t(), (sig.x / sig.Fs) + 1)
+
+    return
+
+
+def test_volts_per_bit():
+    # Chris likes this shot - will probably be available for tests forever
+    shot = 150000
+
+    # Create `Signal` object
+    sig = Signal(shot, 1)
+
+    # Read bits-to-voltage conversion factor from tree.
+    # Note that the conversion factor retrieved from the tree
+    # applies uniformly to *all* of the channels on a given board,
+    # while the `Signal.volts_per_bit` property allows specification
+    # of the conversion factor on a channel-by-channel basis,
+    # regardless of their board location.
+    mds_tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+    node = mds_tree.getNode('.HARDWARE:%s:TO_VOLTS' % sig._digitizer_board)
+    tree_conversion_factor = node.data()
+
+    tools.assert_equal(sig.volts_per_bit, tree_conversion_factor)
+
+    return
