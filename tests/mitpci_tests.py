@@ -258,24 +258,24 @@ def test_t():
     sig.t0 = 0
     sig.x = np.arange(10)
 
-    # (1) `sig.t` is equal to `sig.x` for the above parameters
-    np.testing.assert_equal(sig.t, sig.x)
+    # (1) `sig.t()` is equal to `sig.x` for the above parameters
+    np.testing.assert_equal(sig.t(), sig.x)
 
     # (2) Linear shift
     sig.t0 += 1
-    np.testing.assert_equal(sig.t, sig.x + 1)
+    np.testing.assert_equal(sig.t(), sig.x + 1)
 
     # (3) Double the sampling rate at which signal is retrieved
     sig.Fs *= 2
-    np.testing.assert_equal(sig.t, (sig.x / sig.Fs) + 1)
+    np.testing.assert_equal(sig.t(), (sig.x / sig.Fs) + 1)
 
-    # (4) The time base computed by the `sig.t` property corresponds
+    # (4) The time base computed by the `sig.t()` method corresponds
     # to the retrieved points in `sig.x`, which may be downsampled
     # from the full digitized record. The downsampling is folded
     # into the sampling rate `sig.Fs` at which the signal is retrieved,
-    # however, so altering `sig._downsample` should *not* affect `sig.t`;
-    # that is, `sig.t` should remain unchanged from (3)
+    # however, so altering `sig._downsample` should *not* affect `sig.t()`;
+    # that is, `sig.t()` should remain unchanged from (3)
     sig._downsample = 2
-    np.testing.assert_equal(sig.t, (sig.x / sig.Fs) + 1)
+    np.testing.assert_equal(sig.t(), (sig.x / sig.Fs) + 1)
 
     return

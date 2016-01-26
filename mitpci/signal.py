@@ -238,7 +238,6 @@ class Signal(object):
 
         return t0, x
 
-    @property
     def t(self):
         'Get times for points in `self.x`.'
         return self.t0 + (np.arange(len(self.x)) / self.Fs)
