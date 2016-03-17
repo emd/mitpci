@@ -20,7 +20,7 @@ the appropriate MDSplus servers' tree-path definitions
 (`mitpci.gat.com::/trees/pci` and `hermit.gat.com::/trees/pci`)
 by, for example, adding the following to your `.bashrc`
 
-    $ export pci_path=mitpci.gat.com::/trees/pci;hermit.gat.com::/trees/pci
+    $ export pci_path='mitpci.gat.com::/trees/pci;hermit.gat.com::/trees/pci'
 
 (Data is digitized and first available on `mitpci`, but
 it is later transferred to `hermit` for long(er)-term storage).
