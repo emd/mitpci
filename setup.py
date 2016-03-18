@@ -7,7 +7,7 @@ config = {
     'name': 'mitpci',
     'version': '0.2',
     'packages': ['mitpci'],
-    'install_requires': ['numpy', 'os', 'MDSplus', 'nose'],
+    'install_requires': ['numpy', 'MDSplus', 'nose'],
     'author': 'Evan M. Davis',
     'author_email': 'emd@mit.edu',
     'url': '',
