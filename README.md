@@ -15,8 +15,18 @@ aims to provide Python tools for flexible signal retrieval.
 
 Installation:
 -------------
-Change to the directory you'd like to download the source files to and
-retrieve the source files from github by typing
+Define an environmental variable `$pci_path` specifying
+the appropriate MDSplus servers' tree-path definitions
+(`mitpci.gat.com::/trees/pci` and `hermit.gat.com::/trees/pci`)
+by, for example, adding the following to your `.bashrc`
+
+    $ export pci_path='mitpci.gat.com::/trees/pci;hermit.gat.com::/trees/pci'
+
+(Data is digitized and first available on `mitpci`, but
+it is later transferred to `hermit` for long(er)-term storage).
+
+Now, change to the directory you'd like to download the source files to
+and retrieve the source files from github by typing
 
     $ git clone https://github.com/emd/mitpci.git
 

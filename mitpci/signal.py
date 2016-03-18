@@ -5,6 +5,7 @@ the mitpci system.
 
 
 import numpy as np
+import os
 import MDSplus as mds
 
 
@@ -123,6 +124,12 @@ class Signal(object):
 
             [tlim] = s
 
+        Note:
+        -----
+        If the `$pci_path` environmental variable is not defined,
+        the first instance of this class (per Python session)
+        will automatically create an appropriate definition.
+
         '''
         self.shot = shot
         self.channel = channel
@@ -135,6 +142,22 @@ class Signal(object):
             channels_per_board=channels_per_board)
         self._node_name = self._getNodeName(
             channels_per_board=channels_per_board)
+
+        # If not already defined, specify the location
+        # of the host data server(s)
+        try:
+            key = 'pci_path'
+            os.environ[key]
+        except KeyError:
+            print '\n`$%s` environmental variable not defined' % key
+
+            # Data is digitized and first available on `mitpci`;
+            # however, data is moved to `hermit` for long(er)-term storage
+            pci_path = ('mitpci.gat.com::/trees/pci;'
+                        'hermit.gat.com::/trees/pci')
+
+            print 'Defining `$%s` as "%s"' % (key, pci_path)
+            os.environ[key] = pci_path
 
         # Open the tree and retrieve the signal within the specified
         # time window and with the specified sampling rate
