@@ -32,6 +32,7 @@ class Demodulated(object):
     '''
     def __init__(
             self, shot, channel_I=1, channel_Q=2,
+            compensation={'DC': True, 'amplitude': True},
             quiet=False, **signal_kwargs):
         '''Create an instance of the `Demodulated` class.
 
@@ -68,6 +69,205 @@ class Demodulated(object):
         if not quiet:
             print 'Retrieving quadrature (Q) signal for %i' % shot
         self.Q = Signal(shot, channel_Q, **signal_kwargs)
+
+        self.compensation = compensation
+
+        if self.compensation['DC']:
+            # Subtract DC offsets from I&Q
+            pass
+
+        if self.compensation['amplitude']:
+            # Normalize signal amplitudes
+            pass
+
+        return
+
+    def getPhase(self, unwrap=True):
+        'Return (potentially) unwrapped phase computed from I&Q signals.'
+        # In our implementation, the LO power > the RF power.
+        # For our I&Q demodulator (Mini-Circuits MIQC-60WD+),
+        # LO > RF implies that the signal from the Q-pin obeys
+        #
+        #               Q(phi) = I(phi - pi / 2)
+        #
+        # That is, the signal from the Q pin lags the signal
+        # from the I pin by pi / 2 radians. Now, if we assume
+        # that I = I0 * cos(phi), this implies that
+        # Q = Q0 * cos(phi - pi / 2) = Q0 * sin(phi), and
+        #
+        #               phi = tan^{-1}(Q / I)
+        #
+        # Note that `np.arctan2(...)` operates correctly
+        # on integers and arrays of integers, so there is
+        # no need to precondition `Q` and `I` as arrays
+        # of floats
+        ph = np.arctan2(self.Q.x, self.I.x)
+
+        if unwrap:
+            ph = np.unwrap(ph)
+
+        return ph
+
+    def getFringeIndices(self):
+        '''Determine when interferometer passes from one fringe to another
+        (i.e. when the measured phase evolves by 2 * pi).
+
+        The indices are returned by the function call; additionally,
+        the function assigns the indices to class attribute `fringe_indices`.
+
+        '''
+        ph = self.getPhase()
+
+        self.fringe_indices = secular_change_indices(
+            ph, secular_change=(2 * np.pi))
+
+        return self.fringe_indices
+
+    def getFringeMax(self, x):
+        'Get maximum value of `x` within each fringe.'
+        try:
+            fringe_indices = self.fringe_indices
+        except AttributeError:
+            fringe_indices = self.getFringeIndices()
+
+        N = len(fringe_indices)
+        fringe_max = np.zeros(N)
+
+        for i in np.arange(N):
+            # Determine the slice of `x` corresponding to ith fringe,
+            # noting that the initial and final fringes must be
+            # explicitly handled
+            if i == 0:
+                sl = slice(0, fringe_indices[0])
+            elif i == (N - 1):
+                sl = slice(fringe_indices[-1], None)
+            else:
+                sl = slice(fringe_indices[i - 1], fringe_indices[i])
+
+            fringe_max[i] = np.max(x[sl])
+
+        return fringe_max
+
+    def getDCOffsets(self):
+        'Get I&Q DC offsets within each fringe.'
+        # The I&Q signals may have been manipulated following any previous
+        # computation of `self.fringe_indices`, so it is a good idea
+        # to recompute the indices before performing further computations
+        self.getFringeIndices()
+
+        Imax = self.getFringeMax(self.I)
+        Qmax = self.getFringeMax(self.Q)
+
+        Imin = self.getFringeMax(-self.I)
+        Qmin = self.getFringeMax(-self.Q)
+        Imin *= -1
+        Qmin *= -1
+
+        # Ideally, the I&Q signals are pure sinusoids. If, however,
+        # they have finite DC offset `dA`, their functional form becomes
+        #
+        #                   y = [A * cos(ph)] + dA
+        #
+        # As we are analyzing full fringes (i.e. `ph` passes through
+        # a full 2 * pi radian), we know that
+        #
+        #                       ymax = A + dA
+        #                       ymin = -A + dA
+        #
+        # and
+        #
+        #                   dA = (ymax + ymin) / 2
+        dtype = self.I.x.dtype.name
+        I_DC = (0.5 * (Imax + Imin)).astype(dtype)
+        Q_DC = (0.5 * (Qmax + Qmin)).astype(dtype)
+
+        return I_DC, Q_DC
+
+    def subtractDCOffsets(self):
+        'Subtract DC offsets within each fringe from I&Q signals.'
+        I_DC, Q_DC = self.getDCOffsets()
+
+        fringe_indices = self.fringe_indices
+        N = len(fringe_indices)
+
+        for i in np.arange(N):
+            # Determine the slice of `x` corresponding to ith fringe,
+            # noting that the initial and final fringes must be
+            # explicitly handled
+            if i == 0:
+                sl = slice(0, fringe_indices[0])
+            elif i == (N - 1):
+                sl = slice(fringe_indices[-1], None)
+            else:
+                sl = slice(fringe_indices[i - 1], fringe_indices[i])
+
+            self.I.x[sl] -= I_DC[i]
+            self.Q.x[sl] -= Q_DC[i]
+
+        self.compensation['DC'] = True
+
+        return
+
+    def getAmplitudes(self):
+        'Get I&Q signal amplitudes within each fringe.'
+        # The I&Q signals may have been manipulated following any previous
+        # computation of `self.fringe_indices`, so it is a good idea
+        # to recompute the indices before performing further computations
+        self.getFringeIndices()
+
+        Imax = self.getFringeMax(self.I)
+        Qmax = self.getFringeMax(self.Q)
+
+        Imin = self.getFringeMax(-self.I)
+        Qmin = self.getFringeMax(-self.Q)
+        Imin *= -1
+        Qmin *= -1
+
+        # Assuming a pure sinusoid with a DC offset, the I&Q signals
+        # have the form
+        #
+        #                   y = [A * cos(ph)] + dA
+        #
+        # As we are analyzing full fringes (i.e. `ph` passes through
+        # a full 2 * pi radian), we know that
+        #
+        #                       ymax = A + dA
+        #                       ymin = -A + dA
+        #
+        # and
+        #
+        #                   A = (ymax - ymin) / 2
+        dtype = self.I.x.dtype.name
+        I0 = (0.5 * (Imax - Imin)).astype(dtype)
+        Q0 = (0.5 * (Qmax - Qmin)).astype(dtype)
+
+        return I0, Q0
+
+    def normalizeAmplitudes(self):
+        'Normalize amplitude of Q to that of I within each fringe.'
+        I0, Q0 = self.getAmplitudes()
+
+        Q = self.Q.x
+        dtype = self.Q.x.dtype.name
+
+        fringe_indices = self.fringe_indices
+        N = len(fringe_indices)
+
+        for i in np.arange(N):
+            # Determine the slice of `x` corresponding to ith fringe,
+            # noting that the initial and final fringes must be
+            # explicitly handled
+            if i == 0:
+                sl = slice(0, fringe_indices[0])
+            elif i == (N - 1):
+                sl = slice(fringe_indices[-1], None)
+            else:
+                sl = slice(fringe_indices[i - 1], fringe_indices[i])
+
+            norm = np.float(I0[i]) / Q0[i]
+            Q.x[sl] = (Q.x[sl] * norm).astype(dtype)
+
+        self.compensation['amplitude'] = True
 
         return
 
