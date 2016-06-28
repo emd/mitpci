@@ -118,12 +118,23 @@ class Demodulated(object):
         '''
         ph = self.getPhase()
 
-        self.fringe_indices = secular_change_indices(
+        self.fringe_indices = _secular_change_indices(
             ph, secular_change=(2 * np.pi))
 
         return self.fringe_indices
 
-    def getFringeMax(self, x):
+    def _getFringeSlice(self, fringe, fringe_indices):
+        'Get slice corresponding to `fringe`.'
+        if fringe == 0:
+            sl = slice(0, fringe_indices[0])
+        elif fringe == (len(fringe_indices) - 1):
+            sl = slice(fringe_indices[-1], None)
+        else:
+            sl = slice(fringe_indices[fringe - 1], fringe_indices[fringe])
+
+        return sl
+
+    def _getFringeMax(self, x):
         'Get maximum value of `x` within each fringe.'
         try:
             fringe_indices = self.fringe_indices
@@ -134,16 +145,7 @@ class Demodulated(object):
         fringe_max = np.zeros(N)
 
         for i in np.arange(N):
-            # Determine the slice of `x` corresponding to ith fringe,
-            # noting that the initial and final fringes must be
-            # explicitly handled
-            if i == 0:
-                sl = slice(0, fringe_indices[0])
-            elif i == (N - 1):
-                sl = slice(fringe_indices[-1], None)
-            else:
-                sl = slice(fringe_indices[i - 1], fringe_indices[i])
-
+            sl = self._getFringeSlice(i, fringe_indices)
             fringe_max[i] = np.max(x[sl])
 
         return fringe_max
@@ -155,11 +157,11 @@ class Demodulated(object):
         # to recompute the indices before performing further computations
         self.getFringeIndices()
 
-        Imax = self.getFringeMax(self.I.x)
-        Qmax = self.getFringeMax(self.Q.x)
+        Imax = self._getFringeMax(self.I.x)
+        Qmax = self._getFringeMax(self.Q.x)
 
-        Imin = self.getFringeMax(-self.I.x)
-        Qmin = self.getFringeMax(-self.Q.x)
+        Imin = self._getFringeMax(-self.I.x)
+        Qmin = self._getFringeMax(-self.Q.x)
         Imin *= -1
         Qmin *= -1
 
@@ -191,16 +193,7 @@ class Demodulated(object):
         N = len(fringe_indices)
 
         for i in np.arange(N):
-            # Determine the slice of `x` corresponding to ith fringe,
-            # noting that the initial and final fringes must be
-            # explicitly handled
-            if i == 0:
-                sl = slice(0, fringe_indices[0])
-            elif i == (N - 1):
-                sl = slice(fringe_indices[-1], None)
-            else:
-                sl = slice(fringe_indices[i - 1], fringe_indices[i])
-
+            sl = self._getFringeSlice(i, fringe_indices)
             self.I.x[sl] -= I_DC[i]
             self.Q.x[sl] -= Q_DC[i]
 
@@ -215,11 +208,11 @@ class Demodulated(object):
         # to recompute the indices before performing further computations
         self.getFringeIndices()
 
-        Imax = self.getFringeMax(self.I.x)
-        Qmax = self.getFringeMax(self.Q.x)
+        Imax = self._getFringeMax(self.I.x)
+        Qmax = self._getFringeMax(self.Q.x)
 
-        Imin = self.getFringeMax(-self.I.x)
-        Qmin = self.getFringeMax(-self.Q.x)
+        Imin = self._getFringeMax(-self.I.x)
+        Qmin = self._getFringeMax(-self.Q.x)
         Imin *= -1
         Qmin *= -1
 
@@ -254,16 +247,7 @@ class Demodulated(object):
         N = len(fringe_indices)
 
         for i in np.arange(N):
-            # Determine the slice of `x` corresponding to ith fringe,
-            # noting that the initial and final fringes must be
-            # explicitly handled
-            if i == 0:
-                sl = slice(0, fringe_indices[0])
-            elif i == (N - 1):
-                sl = slice(fringe_indices[-1], None)
-            else:
-                sl = slice(fringe_indices[i - 1], fringe_indices[i])
-
+            sl = self._getFringeSlice(i, fringe_indices)
             norm = np.float(I0[i]) / Q0[i]
             Q.x[sl] = (Q.x[sl] * norm).astype(dtype)
 
@@ -272,7 +256,7 @@ class Demodulated(object):
         return
 
 
-def secular_change_indices(x, secular_change=1, plot=False):
+def _secular_change_indices(x, secular_change=1, plot=False):
     '''Get indices between which `x` changes by `secular_change`.
 
     Parameters:
