@@ -32,7 +32,7 @@ class Demodulated(object):
     '''
     def __init__(
             self, shot, channel_I=1, channel_Q=2,
-            compensation={'DC': False, 'amplitude': False},
+            compensation={'DC': True, 'amplitude': True},
             quiet=False, **signal_kwargs):
         '''Create an instance of the `Demodulated` class.
 
@@ -73,12 +73,12 @@ class Demodulated(object):
         self.compensation = compensation
 
         if self.compensation['DC']:
-            # Subtract DC offsets from I&Q
-            pass
+            print '\nSubtracting DC offsets from I&Q signals'
+            self.subtractDCOffsets()
 
         if self.compensation['amplitude']:
-            # Normalize signal amplitudes
-            pass
+            print 'Normalizing amplitude of Q to that of I'
+            self.normalizeAmplitudes()
 
         return
 
@@ -197,6 +197,10 @@ class Demodulated(object):
             self.I.x[sl] -= I_DC[i]
             self.Q.x[sl] -= Q_DC[i]
 
+        # As the I&Q signals have just been manipulated, it is a good idea
+        # to recompute the indices before performing further computations
+        self.getFringeIndices()
+
         self.compensation['DC'] = True
 
         return
@@ -250,6 +254,10 @@ class Demodulated(object):
             sl = self._getFringeSlice(i, fringe_indices)
             norm = np.float(I0[i]) / Q0[i]
             Q.x[sl] = (Q.x[sl] * norm).astype(dtype)
+
+        # As the I&Q signals have just been manipulated, it is a good idea
+        # to recompute the indices before performing further computations
+        self.getFringeIndices()
 
         self.compensation['amplitude'] = True
 
