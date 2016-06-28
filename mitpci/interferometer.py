@@ -56,6 +56,8 @@ class Demodulated(object):
             of the mitpci system.
 
         '''
+        self.shot = shot
+
         if not quiet:
             print '\nRetrieving in-phase (I) signal for %i' % shot
         self.I = Signal(shot, channel_I, **signal_kwargs)
