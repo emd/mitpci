@@ -58,10 +58,10 @@ class Demodulated(object):
         '''
         if not quiet:
             print '\nRetrieving in-phase (I) signal for %i' % shot
-        self.I = Signal(shot, channel_I, signal_kwargs)
+        self.I = Signal(shot, channel_I, **signal_kwargs)
 
         if not quiet:
             print '\nRetrieving quadrature (Q) signal for %i' % shot
-        self.Q = Signal(shot, channel_Q, signal_kwargs)
+        self.Q = Signal(shot, channel_Q, **signal_kwargs)
 
         return
