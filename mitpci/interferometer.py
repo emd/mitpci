@@ -247,7 +247,7 @@ class Demodulated(object):
         'Normalize amplitude of Q to that of I within each fringe.'
         I0, Q0 = self.getAmplitudes()
 
-        Q = self.Q.x
+        Q = self.Q
         dtype = self.Q.x.dtype.name
 
         fringe_indices = self.fringe_indices
