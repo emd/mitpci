@@ -32,7 +32,7 @@ class Demodulated(object):
     '''
     def __init__(
             self, shot, channel_I=1, channel_Q=2,
-            compensation={'DC': True, 'amplitude': True},
+            compensation={'DC': False, 'amplitude': False},
             quiet=False, **signal_kwargs):
         '''Create an instance of the `Demodulated` class.
 
@@ -155,11 +155,11 @@ class Demodulated(object):
         # to recompute the indices before performing further computations
         self.getFringeIndices()
 
-        Imax = self.getFringeMax(self.I)
-        Qmax = self.getFringeMax(self.Q)
+        Imax = self.getFringeMax(self.I.x)
+        Qmax = self.getFringeMax(self.Q.x)
 
-        Imin = self.getFringeMax(-self.I)
-        Qmin = self.getFringeMax(-self.Q)
+        Imin = self.getFringeMax(-self.I.x)
+        Qmin = self.getFringeMax(-self.Q.x)
         Imin *= -1
         Qmin *= -1
 
@@ -215,11 +215,11 @@ class Demodulated(object):
         # to recompute the indices before performing further computations
         self.getFringeIndices()
 
-        Imax = self.getFringeMax(self.I)
-        Qmax = self.getFringeMax(self.Q)
+        Imax = self.getFringeMax(self.I.x)
+        Qmax = self.getFringeMax(self.Q.x)
 
-        Imin = self.getFringeMax(-self.I)
-        Qmin = self.getFringeMax(-self.Q)
+        Imin = self.getFringeMax(-self.I.x)
+        Qmin = self.getFringeMax(-self.Q.x)
         Imin *= -1
         Qmin *= -1
 
