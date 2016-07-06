@@ -1,5 +1,5 @@
 import numpy as np
-from mitpci.interferometer import secular_change_indices
+from mitpci.interferometer import _secular_change_indices
 
 
 def test_secular_change_indices():
@@ -8,14 +8,14 @@ def test_secular_change_indices():
     #
     #               x2 - x1 = (y2 - y1) / (2 * A)
     #
-    # Now, to test our `secular_change_indices(...)` function,
+    # Now, to test our `_secular_change_indices(...)` function,
     # which has a default secular change of unity (i.e. y2 - y1 = 1),
     # we should choose the spacing of our computational grid to be
     #
     #                       dx = 1 / (2 * A)
     #
     # such that each grid point is identified as having a "secular change".
-    # Of course, as discussed in the source for `secular_change_indices(...)`,
+    # Of course, as discussed in the source for `_secular_change_indices(...)`,
     # the first "jump" does not have a preceding "jump" to be compared against,
     # so we expect grid points 0 and 1 to *not* have a secular change.
 
@@ -26,7 +26,7 @@ def test_secular_change_indices():
     x = np.arange(0, num_cycles, dx)
 
     y = A * sawtooth(x)
-    ind = secular_change_indices(y)
+    ind = _secular_change_indices(y)
 
     ind_expected = np.arange(2, (2 * A * num_cycles))
 
