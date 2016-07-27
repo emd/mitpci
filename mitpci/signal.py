@@ -151,10 +151,7 @@ class Signal(object):
         except KeyError:
             print '\n`$%s` environmental variable not defined' % key
 
-            # Data is digitized and first available on `mitpci`;
-            # however, data is moved to `hermit` for long(er)-term storage
-            pci_path = ('mitpci.gat.com::/trees/pci;'
-                        'hermit.gat.com::/trees/pci')
+            pci_path = 'hermit.gat.com::/trees/pci'
 
             print 'Defining `$%s` as "%s"' % (key, pci_path)
             os.environ[key] = pci_path

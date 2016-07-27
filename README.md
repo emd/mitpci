@@ -16,14 +16,17 @@ aims to provide Python tools for flexible signal retrieval.
 Installation:
 -------------
 Define an environmental variable `$pci_path` specifying
-the appropriate MDSplus servers' tree-path definitions
-(`mitpci.gat.com::/trees/pci` and `hermit.gat.com::/trees/pci`)
+the appropriate MDSplus server's tree-path definitions
+(`hermit.gat.com::/trees/pci`)
 by, for example, adding the following to your `.bashrc`
 
-    $ export pci_path='mitpci.gat.com::/trees/pci;hermit.gat.com::/trees/pci'
+    $ export pci_path='hermit.gat.com::/trees/pci'
 
-(Data is digitized and first available on `mitpci`, but
-it is later transferred to `hermit` for long(er)-term storage).
+(While data is digitized on `mitpci`, it should (ideally)
+always be transferred to `hermit` prior to analysis;
+digitization and writing is very resource intensive, and
+an untimely request for data retrieval from `mitpci` could cause
+sufficient loading to result in data loss or a system crash).
 
 Now, change to the directory you'd like to download the source files to
 and retrieve the source files from github by typing
@@ -48,7 +51,7 @@ To test your installation, run
     $ nosetests tests/
 
 If the tests return "OK", the installation should be working. Note that
-the `mitpci` module and its associated tests requires access to the
+the `mitpci` module and its associated tests require access to the
 mitpci MDSplus server, which is located behind GA's firewall; if you
 are not within the firewall, the module will err and the tests will fail
 due to the inability to read from the mitpci MDSplus server.
