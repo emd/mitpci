@@ -5,7 +5,7 @@ except ImportError:
 
 config = {
     'name': 'mitpci',
-    'version': '0.2',
+    'version': '0.3',
     'packages': ['mitpci'],
     'install_requires': ['numpy', 'MDSplus', 'nose'],
     'author': 'Evan M. Davis',
