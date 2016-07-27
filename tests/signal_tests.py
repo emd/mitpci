@@ -54,8 +54,7 @@ def test__getNodeName():
 
 
 def test__getSampleRate():
-    # Chris likes this shot - will probably be available for tests forever
-    shot = 150000
+    shot = 167340
     Fs = 4e6  # digitization rate
 
     # Without a specified sample rate, there will be no downsampling and
@@ -202,8 +201,7 @@ def test__getSlice():
 
 
 def test__getSignal():
-    # Chris likes this shot - will probably be available for tests forever
-    shot = 150000
+    shot = 167340
 
     # Slice signal by (a) downsampling (Fs_dig = 4e6 in this shot) and
     # (b) looking at only a portion of the digitized record
@@ -283,8 +281,7 @@ def test_t():
 
 
 def test_volts_per_bit():
-    # Chris likes this shot - will probably be available for tests forever
-    shot = 150000
+    shot = 167340
 
     # Create `Signal` object
     sig = Signal(shot, 1)
