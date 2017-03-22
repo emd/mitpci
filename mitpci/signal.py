@@ -238,6 +238,11 @@ class Signal(object):
                 ihi = np.min([imax, np.ceil(ihi_exact)])
             else:
                 ihi = np.min([imax, ihi_exact + 1])
+
+            # Ensure indices are of integer type (rather than float)
+            # to avoid deprecation warnings
+            ilo = np.int(ilo)
+            ihi = np.int(ihi)
         else:
             ilo = imin
             ihi = imax
