@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Related 3rd-party imports
-from .signal import Signal
+from ..signal import Signal
 
 
 class Demodulated(object):
