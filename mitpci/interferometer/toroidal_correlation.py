@@ -20,6 +20,9 @@ class ToroidalCorrelation(CrossSpectralDensity):
     def __init__(self, D, V2=None, trigger_offset=None):
         self._checkInputs(D, V2)
 
+        if V2 is None:
+            V2 = self._loadV2(D)
+
     def _checkInputs(self, D, V2):
         # Valid types for `D` and `V2`
         Dtype = Demodulated
@@ -36,8 +39,11 @@ class ToroidalCorrelation(CrossSpectralDensity):
         elif type(V2) is not V2type:
             raise ValueError('`V2` must be of type %s' % V2type)
         elif D.shot != V2.shot:
-            raise ValueError('`D` and `V2` must correspond to same shot')
-        elif (D.t()[0] > V2.t()[-1]) or (D.t()[-1] < V2.t()[0]):
+            raise ValueError('`D` and `V2` correspond to different shots')
+        elif (D.I.t()[0] > V2.t()[-1]) or (D.I.t()[-1] < V2.t()[0]):
             raise ValueError('No temporal overlap between `D` and `V2`')
 
+        return
+
+    def _loadV2(self, D):
         return
