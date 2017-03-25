@@ -1,1 +1,2 @@
 from demodulated import Demodulated
+from toroidal_correlation import ToroidalCorrelation
