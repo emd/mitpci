@@ -1,5 +1,5 @@
 import numpy as np
-from mitpci.interferometer import _secular_change_indices
+from mitpci.interferometer.demodulated import _secular_change_indices
 
 
 def test_secular_change_indices():
