@@ -7,8 +7,9 @@ R = 1.94 m).
 
 
 # Standard library imports
-# import numpy as np
+import numpy as np
 # import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 # Related 3rd-party imports
 from .demodulated import Demodulated
@@ -17,9 +18,89 @@ from random_data.spectra import CrossSpectralDensity
 
 
 class ToroidalCorrelation(CrossSpectralDensity):
-    def __init__(self, D, V2=None, trigger_offset=None,
-                 vibration_subtracted=True):
-        self._checkInputs(D, V2)
+    '''A class for toroidally correlating the MIT and V2 interferometers.
+
+    This class is derived from :py:class:`CrossSpectralDensity
+    <random_data.spectra.CrossSpectralDensity>` and thus shares
+    all of its attributes and methods. Attributes *unique*
+    to :py:class:`ToroidalCorrelation
+    <mitpci.interferometer.toroidal_correlation.ToroidalCorrelation>`
+    are discussed below.
+
+    Attributes:
+    -----------
+    shot - int
+        DIII-D shot number.
+
+    trigger_offset - float
+        The timebase offset between the MIT and V2 interferometers.
+        (See `__init__()` docstring for more information).
+
+    vibration_subtracted - bool
+        If True, vibrational contributions from the V2-measured phase
+        have been removed.
+
+    '''
+    def __init__(self, D, V2=None, trigger_offset=-32.5e-6,
+                 vibration_subtracted=True, **csd_kwargs):
+        '''Create an instance of the `ToroidalCorrelation` class.
+
+        Input Parameters:
+        -----------------
+        D - :py:class:`Demodulated
+                <mitpci.interferometer.demodulated.Demodulated>`
+            Object corresponding to the MIT interferometer's
+            demodulated in-phase (I) and quadrature (Q) signals.
+
+        V2 - None, or :py:class:`Signal <bci.signal.Signal>`
+            Object corresponding to V2 interferometer's phase.
+            If `V2` is `None`, the V2-measured phase corresponding
+            to `D` is automatically loaded.
+
+        trigger_offset - float
+            The timebase offset between the MIT and V2 interferometers.
+            Although the MIT and V2 interferometer clocks are phase-locked,
+            discrepancies between nominal and realized trigger times and
+            nominal and actual sampling rates in both systems can result
+            in a finite "trigger offset". This offset must be compensated
+            for in order to extract sensible results from the correlation.
+
+            When `trigger_offset` is positive, the MIT timebase leads
+            the V2 timebase. When `trigger_offset` is negative, the
+            MIT timebase lags the V2 timebase.
+
+            [trigger_offset] = s
+
+        vibration_subtracted - bool
+            If True, remove vibrational contributions from the
+            V2-measured phase. Vibrational contributions to the
+            CO2-measured phase are typically "small" for frequencies
+            above 10 kHz. While removing the vibrational contributions
+            from the CO2-measured phase can increase the signal-to-noise
+            ratio in *some cases*, it can potentially introduce other
+            problems, as is discussed on the BCI homepage.
+
+        csd_kwargs - any valid keyword arguments for
+            :py:class:`CrossSpectralDensity
+                <random_data.spectra.CrossSpectralDensity>`.
+
+            For example, use
+
+                    xcorr = ToroidalCorrelation(...,
+                        Tens=5e-3, Nreal_per_ens=10)
+
+            to specify 5-ms ensembles with 10 realizations per ensemble.
+            See the `CrossSpectralDensity` documentation for
+            further details.
+
+            Note that the `t0` and `Fs` keywords will be
+            neglected if provided in `csd_kwargs`, as these
+            parameters are automatically determined from
+            `D` and `V2`.
+
+        '''
+        self._checkSignals(D, V2)
+        csd_kwargs = self._checkCsdKwargs(csd_kwargs)
 
         # Load V2 data, if not provided by user
         if V2 is None:
@@ -38,12 +119,21 @@ class ToroidalCorrelation(CrossSpectralDensity):
         self.vibration_subtracted = V2.vibration_subtracted
 
         # Interpolate MIT interferometer onto V2 time base
+        print '\nInterpolating MIT measurements onto V2 timebase'
+        ph_MIT_interp = (interp1d(D.I.t(), D.getPhase()))(V2.t())
+
+        # Account for trigger offset
+        sl_V2, sl_MIT = self._getOffsetSlices(V2)
 
         # Compute cross-spectral density
+        CrossSpectralDensity.__init__(
+            self, V2.x[sl_V2], ph_MIT_interp[sl_MIT],
+            Fs=V2.Fs, t0=V2.t0,
+            **csd_kwargs)
 
-        # Colormaps
+        # Colormaps and easier plotting
 
-    def _checkInputs(self, D, V2):
+    def _checkSignals(self, D, V2):
         'Check that `D` and `V2` are the correct types and are compatible.'
         # Valid types for `D` and `V2`
         Dtype = Demodulated
@@ -65,3 +155,33 @@ class ToroidalCorrelation(CrossSpectralDensity):
             raise ValueError('No temporal overlap between `D` and `V2`')
 
         return
+
+    def _checkCsdKwargs(self, csd_kwargs):
+        'Remove `t0` and `Fs` from `csd_kwargs`, if present.'
+        forbidden_keys = ['t0', 'Fs']
+
+        for key in forbidden_keys:
+            if csd_kwargs.has_key(key):
+                print '\nUser-specified `%s` is being neglected' % key
+                csd_kwargs.pop(key)
+
+        return csd_kwargs
+
+    def _getOffsetSlices(self, V2):
+        '''Get slices to shift V2 and MIT signals relative to one another
+        in order to eliminate finite trigger offset between the two systems.
+
+        '''
+        offset = np.int(V2.Fs * self.trigger_offset)
+
+        if offset > 0:
+            sl_V2 = slice(None, -offset)
+            sl_MIT = slice(offset, None)
+        elif offset < 0:
+            sl_V2 = slice(-offset, None)
+            sl_MIT = slice(None, offset)
+        else:
+            sl_V2 = slice(None, None)
+            sl_MIT = slice(None, None)
+
+        return sl_V2, sl_MIT

@@ -4,7 +4,7 @@ from mitpci.interferometer import Demodulated, ToroidalCorrelation
 import bci
 
 
-def test__checkInputs():
+def test__checkSignals():
     shot = 167341
     tlim = np.array([2., 2.25])
     dt = tlim[1] - tlim[0]
