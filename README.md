@@ -10,7 +10,7 @@ interference schemes and detectors to make their respective measurements.
 
 As these systems share a digitization system, the mechanics underlying
 signal retrieval from both systems are identical. This module (`mitpci`)
-aims to provide Python tools for flexible signal retrieval.
+aims to provide Python tools for flexible signal retrieval and analysis.
 
 
 Installation:
@@ -97,3 +97,101 @@ the `mitpci` module and its associated tests require access to the
 mitpci MDSplus server, which is located behind GA's firewall; if you
 are not within the firewall, the module will err and the tests will fail
 due to the inability to read from the mitpci MDSplus server.
+
+
+Use:
+====
+The MIT heterodyne interferometer's in-phase (I) and quadrature (Q) signals
+can be readily loaded as follows:
+
+```python
+import mitpci
+
+# Load data from MIT interferometer
+shot = 167342
+tlim = [1.0, 2.5]  # [tlim] = s
+D = mitpci.interferometer.Demodulated(shot, tlim=tlim)
+
+```
+Note that the `Demodulated` class automatically compensates for
+demodulator imperfections (i.e. DC offsets and amplitude imbalances
+between I and Q).
+
+Spectral information can then be readily computed and visualized using the
+[random_data package](https://github.com/emd/random_data).
+In particular, toroidal mode numbers can be measured by
+correlating the MIT heterodyne interferometer
+with the toroidally separated V2 interferometer, as follows:
+
+```python
+import random_data as rd
+
+# Spectral-estimation parameters
+Tens = 5e-3         # Ensemble time length, [Tens] = s
+Nreal_per_ens = 5   # Number of realizations per ensemeble
+
+# Determine mode numbers from interferometers
+xcorr_int = mitpci.interferometer.ToroidalCorrelation(
+    D, Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+
+xcorr_int.plotModeNumber(
+    xlabel='$t \, [\mathrm{s}]$',
+    ylabel='$f \, [\mathrm{Hz}]$',
+    flim=[0, 300e3],
+    all_positive=True)
+
+```
+
+![interferometer_mode_numbers](https://raw.githubusercontent.com/emd/magnetics/master/figs/interferometer_mode_numbers.png)
+
+Note that the 45-degree toroidal separation of the V2 and MIT
+interferometers allows identification of 8 distinct
+toroidal mode numbers. The exact mode-number range, however,
+depends on the mode's rotation:
+
+* for unknown rotation, set `all_positive` to `False`,
+  which will plot mode numbers between -3 <= n <= 4;
+
+* for positive rotation (counterclockwise when viewing
+  the vacuum vessel from above), set `all_positive` to
+  `True`, which will plot mode numbers between 0 <= n <= 7.
+
+The interferometer-measured toroidal mode numbers can be
+compared to magnetic measurements.
+For example, toroidal mode numbers can be readily extracted
+from magnetic measurements using the
+[magnetics package](https://github.com/emd/magnetics), as follows:
+
+```python
+import magnetics
+
+torsigs = magnetics.signal.ToroidalSignals(shot, tlim=tlim)
+
+A = rd.array.Array(
+    torsigs.x, torsigs.locations, Fs=torsigs.Fs, t0=torsigs.t0,
+    Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+
+fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
+
+cmap_mag = magnetics.colormap.positive_mode_numbers()[0]
+
+A.plotModeNumber(
+    ax=axes[1],
+    title='magnetics',
+    xlabel='$t \, [\mathrm{s}]$',
+    ylabel='',
+    cblabel='$n$',
+    mode_number_lim=[0, 11],
+    cmap=cmap_mag)
+
+xcorr_int.plotModeNumber(
+    ax=axes[0],
+    title='interferometers',
+    xlabel='$t \, [\mathrm{s}]$',
+    ylabel='$f \, [\mathrm{Hz}]$',
+    flim=[0, 300e3],
+    all_positive=True)
+
+```
+
+![interferometer_and_magnetic_mode_numbers](https://raw.githubusercontent.com/emd/magnetics/master/figs/interferometer_and_magnetic_mode_numbers.png)
