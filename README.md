@@ -18,37 +18,51 @@ Installation:
 
 ... on GA's Iris cluster:
 -------------------------
-Package management is cleanly handled on Iris via
-[modules](https://diii-d.gat.com/diii-d/Iris#Environment_modules).
-The `mitpci` package has a corresponding modulefile
-[here](https://github.com/emd/modulefiles).
-
 To use the `mitpci` package, change to the directory
-you'd like to download the source files to and
-retrieve the source files from github by typing
+you'd like to download the source files to, e.g.
+
+    $ cd $HOME/python/projects
+
+and retrieve the source files from github by typing
 
     $ git clone https://github.com/emd/mitpci.git
 
 The created `mitpci` directory defines the
 package's top-level directory. The `mitpci` package
-depends on four additional packages:
+depends on three additional packages:
 
 * [random_data](https://github.com/emd/random_data),
-* [bci](https://github.com/emd/bci),
-* [magnetics](https://github.com/emd/magnetics), and
-* [distinct_colours](https://personal.sron.nl/~pault/).
+* [bci](https://github.com/emd/bci), and
+* [magnetics](https://github.com/emd/magnetics).
 
-These packages and their modulefiles should be similarly cloned.
+These packages should similarly be cloned, e.g.
 
-Now, at the top of the corresponding
+    $ git clone https://github.com/emd/random_data.git
+    $ git clone https://github.com/emd/bci
+    $ git clone https://github.com/emd/magnetics
+
+Now, package management is cleanly handled on Iris via
+[modules](https://diii-d.gat.com/diii-d/Iris#Environment_modules).
+The above packages all have corresponding modulefiles
+[here](https://github.com/emd/modulefiles).
+Change to the directory you'd like to download the modulefiles to, e.g.
+
+    $ cd $HOME
+
+and retrieve the modulefiles by typing
+
+    $ git clone https://github.com/emd/modulefiles
+
+If your directory structure *differs* from that suggested above,
+you will need to slightly modify the corresponding modulefile.
+Specifically, at the top of the `mitpci`
 [modulefile](https://github.com/emd/modulefiles/blob/master/mitpci),
 there is a TCL variable named `mitpci_root`;
 this must be altered to point at the
 top-level directory of the cloned `mitpci` package.
 Similarly, the TCL variable `modulefiles_dir`
 must be altered to point at the directory containing
-the modulefiles for `random_data`, `bci`, `magnetics`, and
-`distinct_colours`.
+the modulefiles for `random_data`, `bci`, and `magnetics`.
 That's it! You shouldn't need to change anything else in
 the modulefile. The `mitpci` module can
 then be loaded, unloaded, etc., as is discussed in the
