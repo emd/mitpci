@@ -30,14 +30,25 @@ retrieve the source files from github by typing
     $ git clone https://github.com/emd/mitpci.git
 
 The created `mitpci` directory defines the
-package's top-level directory.
-The modulefiles should be similarly cloned.
+package's top-level directory. The `mitpci` package
+depends on four additional packages:
+
+* [random_data](https://github.com/emd/random_data),
+* [bci](https://github.com/emd/bci),
+* [magnetics](https://github.com/emd/magnetics), and
+* [distinct_colours](https://personal.sron.nl/~pault/).
+
+These packages and their modulefiles should be similarly cloned.
 
 Now, at the top of the corresponding
 [modulefile](https://github.com/emd/modulefiles/blob/master/mitpci),
 there is a TCL variable named `mitpci_root`;
 this must be altered to point at the
 top-level directory of the cloned `mitpci` package.
+Similarly, the TCL variable `modulefiles_dir`
+must be altered to point at the directory containing
+the modulefiles for `random_data`, `bci`, `magnetics`, and
+`distinct_colours`.
 That's it! You shouldn't need to change anything else in
 the modulefile. The `mitpci` module can
 then be loaded, unloaded, etc., as is discussed in the
