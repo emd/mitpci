@@ -142,7 +142,7 @@ xcorr_int.plotModeNumber(
 
 ```
 
-![interferometer_mode_numbers](https://raw.githubusercontent.com/emd/magnetics/master/figs/interferometer_mode_numbers.png)
+![interferometer_mode_numbers](https://raw.githubusercontent.com/emd/mitpci/master/figs/interferometer_mode_numbers.png)
 
 Note that the 45-degree toroidal separation of the V2 and MIT
 interferometers allows identification of 8 distinct
@@ -194,4 +194,4 @@ xcorr_int.plotModeNumber(
 
 ```
 
-![interferometer_and_magnetic_mode_numbers](https://raw.githubusercontent.com/emd/magnetics/master/figs/interferometer_and_magnetic_mode_numbers.png)
+![interferometer_and_magnetic_mode_numbers](https://raw.githubusercontent.com/emd/mitpci/master/figs/interferometer_and_magnetic_mode_numbers.png)
