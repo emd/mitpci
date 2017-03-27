@@ -14,6 +14,7 @@ from scipy.interpolate import interp1d
 from .demodulated import Demodulated
 import bci
 from random_data.spectra import CrossSpectralDensity
+from magnetics import colormap
 
 
 class ToroidalCorrelation(CrossSpectralDensity):
@@ -185,32 +186,32 @@ class ToroidalCorrelation(CrossSpectralDensity):
 
         return sl_V2, sl_MIT
 
-    def plotModeNumber(self, nmin=-3, **plot_kwargs):
+    def plotModeNumber(self, all_positive=False, **plot_kwargs):
         '''Plot toroidal mode number as a function of frequency and time.
 
         Parameters:
         -----------
-        nmin - int
-            The minimum toroidal mode number to be plotted.
+        all_positive - bool
+            If True, the plotted mode numbers will all be
+            positive semi-definite.
+
             The 45-degree toroidal separation of the V2 and MIT
             interferometers allows identification of 8 distinct
             toroidal mode numbers. The exact mode-number range,
             however, depends on the mode's rotation:
 
-            - for unknown rotation, choose `nmin` = -3, which
-              will yield a maximum toroidal mode number of 4
-              (alternatively, `nmin` = -4 is equally sensible,
-              and this yields a maximum toroidal mode number of 3);
+            - for unknown rotation, set `all_positive` to False,
+              which will plot mode numbers between -3 <= n <= 4;
 
             - for positive rotation (counterclockwise when viewing
-              the vacuum vessel from above), choose `nmin` = 0,
-              which yields a maximum toroidal mode number of 7;
+              the vacuum vessel from above), set `all_positive` to
+              True, which will plot mode numbers between 0 <= n <= 7.
 
         plot_kwargs - any valid keyword arguments for
             :py:instancemethod:`plotPhaseAngle
             <random_data.spectra.CrossSpectralDensity.plotPhaseAngle>`.
 
-            Note that the {`dtheta`, `theta_min`, `mode_number`}
+            Note that the {`dtheta`, `theta_min`, `mode_number`, `cmap`}
             keywords are prescribed in this method, so user-provided
             values for these keywords are overwritten.
 
@@ -219,12 +220,19 @@ class ToroidalCorrelation(CrossSpectralDensity):
         # [dzeta] = radians
         dzeta = np.pi / 4
 
-        # Phase angle corresponding to `nmin`
-        theta_min = nmin * dzeta
+        if all_positive:
+            theta_min = 0
+            cmap = colormap.positive_mode_numbers(
+                angular_separation=dzeta)[1]
+        else:
+            theta_min = -0.75 * np.pi
+            cmap = colormap.mixed_sign_mode_numbers(
+                angular_separation=dzeta)[1]
 
         plot_kwargs['dtheta'] = dzeta
         plot_kwargs['theta_min'] = theta_min
         plot_kwargs['mode_number'] = True
+        plot_kwargs['cmap'] = cmap
 
         ax = CrossSpectralDensity.plotPhaseAngle(self, **plot_kwargs)
 
