@@ -159,9 +159,8 @@ times `tlim`, use
 ```python
 import mitpci
 
-# Load data from MIT interferometer
 shot = 167342
-channel = 8
+channel = 8        # channel corresponding to PCI measurement
 tlim = [1.0, 2.5]  # [tlim] = s
 
 sig = mitpci.signal.Signal(shot, channel, tlim=tlim)
@@ -183,6 +182,10 @@ D = mitpci.interferometer.Demodulated(shot, tlim=tlim)
 Note that the `Demodulated` class automatically compensates for
 demodulator imperfections (i.e. DC offsets and amplitude imbalances
 between I and Q).
+The post-processed I and Q signals can be accessed via
+`D.I.x` and `D.Q.x`, respectively, while the phase can be retrieved via
+`D.getPhase()`. The timebase can be retrieved via `D.I.t()`
+(or, equivalently, `D.Q.t()`).
 
 Spectral information can then be readily computed and visualized using the
 [random_data package](https://github.com/emd/random_data).
