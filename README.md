@@ -234,7 +234,7 @@ depends on the mode's rotation:
 The interferometer-measured toroidal mode numbers can be
 compared to magnetic measurements.
 For example, toroidal mode numbers can be readily extracted
-from magnetic measurements using the
+from magnetic measurements using my
 [magnetics package](https://github.com/emd/magnetics), as follows:
 
 ```python
