@@ -154,7 +154,7 @@ Use:
 ====
 To retrieve a signal digitized on channel `channel` on the
 "mitpci" digitizer system from DIII-D shot `shot` between
-times `tlim`, use
+times `tlim`, use the `mitpci.signal.Signal` class
 
 ```python
 import mitpci
@@ -167,11 +167,14 @@ sig = mitpci.signal.Signal(shot, channel, tlim=tlim)
 
 ```
 
-Note that the `Signal` class allows retrieval of both
+The digitized signal can then be accessed via `sig.x`
+(raw signal, in bits), while the timebase can be generated via `sig.t()`.
+The signal can be converted to volts via `sig.x * sig.volts_per_bit`.
+Note that the `mitpci.signal.Signal` class allows retrieval of both
 PCI and heterodyne interferometer measurements.
 
-However, a specialized `Demodulated` class also exists
-for retrieval of the heterodyne interferometer's
+However, a specialized `mitpci.interferometer.Demodulated` class
+also exists for retrieval of the heterodyne interferometer's
 in-phase (I) and quadrature (Q) signals, e.g.
 
 ```python
@@ -179,13 +182,15 @@ D = mitpci.interferometer.Demodulated(shot, tlim=tlim)
 
 ```
 
-Note that the `Demodulated` class automatically compensates for
-demodulator imperfections (i.e. DC offsets and amplitude imbalances
-between I and Q).
-The post-processed I and Q signals can be accessed via
-`D.I.x` and `D.Q.x`, respectively, while the phase can be retrieved via
-`D.getPhase()`. The timebase can be retrieved via `D.I.t()`
-(or, equivalently, `D.Q.t()`).
+Note that the `mitpci.interferometer.Demodulated` class
+automatically compensates for demodulator imperfections
+(i.e. DC offsets and amplitude imbalances between I and Q).
+The post-processed I and Q objects are accessed via
+`D.I` and `D.Q`, respectively.
+Both `D.I` and `D.Q` are *instances* of the `mitpci.signal.Signal` class, so
+the raw digitized signal (in bits) is accessed via e.g. `D.I.x`, and
+the timebase can be generated via e.g. `D.I.t()`.
+The phase is readily calculated via `D.getPhase()`.
 
 Spectral information can then be readily computed and visualized using the
 [random_data package](https://github.com/emd/random_data).
