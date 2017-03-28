@@ -9,8 +9,22 @@ through the DIII-D vessel and a digitizer, but they use different
 interference schemes and detectors to make their respective measurements.
 
 As these systems share a digitization system, the mechanics underlying
-signal retrieval from both systems are identical. This module (`mitpci`)
-aims to provide Python tools for flexible signal retrieval and analysis.
+signal retrieval from both systems are identical. This module's first
+priority is to provide Python tools for robust and flexible signal retrieval.
+
+The second priority of this module is to provide specialized routines
+for analysis of the respective signals.
+Currently, there are no specialized analysis routines for the PCI
+implemented in this module.
+However, there are several specialized analysis routines for
+the heterodyne interferometer, including:
+
+* compensation of demodulator imperfections (i.e. DC offsets and
+  amplitude imbalances between the I and Q signals), and
+* correlation with the toroidally separated V2 interferometer
+  for toroidal mode-number identification.
+
+The use of these routines is discussed below.
 
 
 Installation:
@@ -54,7 +68,7 @@ and retrieve the modulefiles by typing
     $ git clone https://github.com/emd/modulefiles
 
 If your directory structure *differs* from that suggested above,
-you will need to slightly modify the corresponding modulefile.
+you will need to slightly modify the corresponding modulefiles.
 Specifically, at the top of the `mitpci`
 [modulefile](https://github.com/emd/modulefiles/blob/master/mitpci),
 there is a TCL variable named `mitpci_root`;
@@ -64,7 +78,11 @@ Similarly, the TCL variable `modulefiles_dir`
 must be altered to point at the directory containing
 the modulefiles for `random_data`, `bci`, and `magnetics`.
 That's it! You shouldn't need to change anything else in
-the modulefile. The `mitpci` module can
+the `mitpci` modulefile.
+(Of course, similar changes will also need to be made
+to the `<package>_root` TCL variable in the modulefile
+for the `random_data`, `bci`, and `magnetics` modules).
+The `mitpci` module can
 then be loaded, unloaded, etc., as is discussed in the
 above-linked Iris documentation.
 
@@ -82,7 +100,15 @@ due to the inability to read from the mitpci MDSplus server.
 
 ... elsewhere:
 --------------
-Define an environmental variable `$pci_path` specifying
+First, install the `mitpci` dependencies that are *not* on PyPI:
+
+* [random_data](https://github.com/emd/random_data),
+* [bci](https://github.com/emd/bci), and
+* [magnetics](https://github.com/emd/magnetics).
+
+(Installation instructions provided in each of the links).
+
+Then, define an environmental variable `$pci_path` specifying
 the appropriate MDSplus server's tree-path definitions
 (`hermit.gat.com::/trees/pci`)
 by, for example, adding the following to your `.bashrc`
@@ -126,18 +152,34 @@ due to the inability to read from the mitpci MDSplus server.
 
 Use:
 ====
-The MIT heterodyne interferometer's in-phase (I) and quadrature (Q) signals
-can be readily loaded as follows:
+To retrieve a signal digitized on channel `channel` on the
+"mitpci" digitizer system from DIII-D shot `shot` between
+times `tlim`, use
 
 ```python
 import mitpci
 
 # Load data from MIT interferometer
 shot = 167342
+channel = 8
 tlim = [1.0, 2.5]  # [tlim] = s
+
+sig = mitpci.signal.Signal(shot, channel, tlim=tlim)
+
+```
+
+Note that the `Signal` class allows retrieval of both
+PCI and heterodyne interferometer measurements.
+
+However, a specialized `Demodulated` class also exists
+for retrieval of the heterodyne interferometer's
+in-phase (I) and quadrature (Q) signals, e.g.
+
+```python
 D = mitpci.interferometer.Demodulated(shot, tlim=tlim)
 
 ```
+
 Note that the `Demodulated` class automatically compensates for
 demodulator imperfections (i.e. DC offsets and amplitude imbalances
 between I and Q).
