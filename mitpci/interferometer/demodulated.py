@@ -43,7 +43,7 @@ class Demodulated(object):
 
         channel_I [channel Q] - int
             The channel of the mitpci system corresponding to the
-            interferometer's in-phase (I) [quadrature (Q) signal]signal
+            interferometer's in-phase (I) [quadrature (Q)] signal
 
         quiet - bool
             If True, suppress printing messages to the terminal.
