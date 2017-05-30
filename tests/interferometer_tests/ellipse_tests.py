@@ -35,24 +35,38 @@ def test__ellipse():
 
 def test_FittedEllipse_getSlice():
     # Unit circle w/ 1-degree spacing between successive points
+    # and 1 full transits around origin
+    N = 1
+    dE = 1
+    E = np.arange(0, 360 * N, dE)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+    starts = np.where((E % 360) == 0)[0]
+
+    FE = FittedEllipse(x, y, starts)
+
+    # Check slicing for first (and only) ellipse
+    tools.assert_equal(
+        FE.getSlice(0, starts),
+        slice(0, None))
+
+    # Unit circle w/ 1-degree spacing between successive points
     # and 2 full transits around origin
     N = 2
-    dth = 1
-    th = np.arange(0, 360 * N, dth)
-    x = np.cos((np.pi / 180) * th)
-    y = np.sin((np.pi / 180) * th)
-    starts = np.where((th % 360) == 0)[0]
+    dE = 1
+    E = np.arange(0, 360 * N, dE)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+    starts = np.where((E % 360) == 0)[0]
 
-    E = FittedEllipse(x, y, starts)
+    FE = FittedEllipse(x, y, starts)
 
     # Check slicing for first ellipse
     tools.assert_equal(
-        E.getSlice(0, starts),
+        FE.getSlice(0, starts),
         slice(0, 360))
 
     # Check slicing for final ellipse
     tools.assert_equal(
-        E.getSlice(1, starts),
+        FE.getSlice(1, starts),
         slice(360, None))
 
     return
