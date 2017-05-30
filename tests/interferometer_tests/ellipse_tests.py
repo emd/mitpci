@@ -1,6 +1,36 @@
 from nose import tools
 import numpy as np
-from mitpci.interferometer.ellipse import FittedEllipse
+from mitpci.interferometer.ellipse import FittedEllipse, _ellipse
+
+
+def test__ellipse():
+    E = np.arange(0, 2 * np.pi, np.pi / 180)
+
+    # Standard unit circle
+    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+    np.testing.assert_array_equal(x, np.cos(E))
+    np.testing.assert_array_equal(y, np.sin(E))
+
+    # Offset unit circle
+    x0 = 1.
+    y0 = -2.5
+    x, y = _ellipse(1, 1, x0, y0, 0, E=E)
+    np.testing.assert_allclose(x, x0 + np.cos(E))
+    np.testing.assert_allclose(y, y0 + np.sin(E))
+
+    # Stretched
+    a = 2
+    b = 0.5
+    x, y = _ellipse(a, b, 0, 0, 0, E=E)
+    np.testing.assert_allclose(x, a * np.cos(E))
+    np.testing.assert_allclose(y, b * np.sin(E))
+
+    # Rotated unit circle
+    x, y = _ellipse(1, 1, 0, 0, np.pi / 2, E=E)
+    np.testing.assert_allclose(x, -np.sin(E), atol=1e-16)
+    np.testing.assert_allclose(y, np.cos(E), atol=1e-16)
+
+    return
 
 
 def test_FittedEllipse_getSlice():
