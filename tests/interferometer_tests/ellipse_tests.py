@@ -153,3 +153,67 @@ def test_FittedEllipse_compensateEllipticity_WrongInputs():
         FE.compensateEllipticity, *[y1, y1, starts])
 
     return
+
+
+def test_FittedEllipse_compensateEllipticity():
+    # Irrational angular spacing to avoid zero crossings
+    # in sine and cosine functions, which throw off
+    # the relative-tolerance algorithms below
+    # (i.e. eps / 0 -> infty, which is not small)
+    dE = np.sqrt(2) * (np.pi / 180)
+    E = np.arange(dE, 2 * np.pi, dE)
+
+    # Single ellipse
+    # Note: Not quite sure on angle convention
+    # of ellipse-fitting algorithm, so just use
+    # small, positive value (which ellipse-fitting
+    # algorithm maps back onto the same value)
+    axes1 = np.abs(np.random.randn(2))
+    a1 = np.max(axes1)
+    b1 = np.min(axes1)
+    x01 = np.random.randn()
+    y01 = np.random.randn()
+    theta1 = 0.1
+    x1, y1 = _ellipse(a1, b1, x01, y01, theta1, E=E)
+
+    # Fit elliptical data and apply compensation
+    starts = [0]
+    FE = FittedEllipse(x1, y1, starts)
+    xc, yc = FE.compensateEllipticity(x1, y1, starts)
+
+    # Compare to expectations
+    r1 = 0.5 * (a1 + b1)
+    np.testing.assert_allclose(xc, r1 * np.cos(E))
+    np.testing.assert_allclose(yc, r1 * np.sin(E))
+
+    # Generate 2nd, distinct ellipse
+    # Note: Not quite sure on angle convention
+    # of ellipse-fitting algorithm, so just use
+    # small, positive value (which ellipse-fitting
+    # algorithm maps back onto the same value)
+    axes2 = np.abs(np.random.randn(2))
+    a2 = np.max(axes2)
+    b2 = np.min(axes2)
+    x02 = np.random.randn()
+    y02 = np.random.randn()
+    theta2 = 0.2
+    x2, y2 = _ellipse(a2, b2, x02, y02, theta2, E=E)
+
+    # Fit elliptical data and apply compensation
+    x = np.concatenate((x1, x2))  # need unique identifier/memory
+    y = np.concatenate((y1, y2))  # need unique identifier/memory
+    starts = [0, len(E)]
+    FE = FittedEllipse(x, y, starts)
+    xc, yc = FE.compensateEllipticity(x, y, starts)
+
+    # Compare to expectations
+    sl1 = FE.getSlice(0, starts)
+    np.testing.assert_allclose(xc[sl1], r1 * np.cos(E))
+    np.testing.assert_allclose(yc[sl1], r1 * np.sin(E))
+
+    r2 = 0.5 * (a2 + b2)
+    sl2 = FE.getSlice(1, starts)
+    np.testing.assert_allclose(xc[sl2], r2 * np.cos(E))
+    np.testing.assert_allclose(yc[sl2], r2 * np.sin(E))
+
+    return

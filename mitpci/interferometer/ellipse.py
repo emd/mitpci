@@ -83,7 +83,7 @@ class FittedEllipse(object):
 
     def compensateEllipticity(self, x, y, starts):
         '''Use fitting parameters to invert affine transformation,
-        mapping the ellipse back to a circle.
+        effectively mapping the ellipse back to a circle.
 
         '''
         if id(x) != self.xid:
@@ -91,7 +91,29 @@ class FittedEllipse(object):
         if id(y) != self.yid:
             raise ValueError('Provided `y` *not* equal to fitted `y`')
 
-        return
+        # Initialize compensated arrays
+        xc = np.zeros(len(x))
+        yc = np.zeros(len(y))
+
+        # Map each ellipse back to its corresponding circle
+        for e in np.arange(len(starts)):
+            sl = self.getSlice(e, starts)
+
+            # Radius of corresponding circle is simply
+            # an average of semi-major and semi-minor axes
+            r = 0.5 * (self.a[e] + self.b[e])
+
+            # Build up compensated x-coordinate iteratively
+            xc[sl] = (x[sl] - self.x0[e]) * np.cos(self.theta[e])
+            xc[sl] += ((y[sl] - self.y0[e]) * np.sin(self.theta[e]))
+            xc[sl] *= (r / self.a[e])
+
+            # Build up compensated y-coordinate iteratively
+            yc[sl] = (y[sl] - self.y0[e]) * np.cos(self.theta[e])
+            yc[sl] -= ((x[sl] - self.x0[e]) * np.sin(self.theta[e]))
+            yc[sl] *= (r / self.b[e])
+
+        return xc, yc
 
 
 def _ellipse(a, b, x0, y0, theta, E=np.arange(0, 2 * np.pi, np.pi / 180)):
