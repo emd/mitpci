@@ -81,6 +81,18 @@ class FittedEllipse(object):
 
         return a, b, x0, y0, theta
 
+    def applyCompensationTo(self, x, y, starts):
+        '''Use fitting parameters to invert affine transformation,
+        mapping the ellipse back to a circle.
+
+        '''
+        if id(x) != self.xid:
+            raise ValueError('Provided `x` *not* equal to fitted `x`')
+        if id(y) != self.yid:
+            raise ValueError('Provided `y` *not* equal to fitted `y`')
+
+        return
+
 
 def _ellipse(a, b, x0, y0, theta, E=np.arange(0, 2 * np.pi, np.pi / 180)):
     '''Get (x, y) coordinates of specified ellipse.

@@ -123,3 +123,33 @@ def test_FittedEllipse_getFits():
     np.testing.assert_allclose(FE.theta, np.array([theta1, theta2]))
 
     return
+
+
+def test_FittedEllipse_applyCompensationTo_WrongInputs():
+    E = np.arange(0, 2 * np.pi, np.pi / 180)
+
+    # Single ellipse
+    # Note: Not quite sure on angle convention
+    # of ellipse-fitting algorithm, so just use
+    # small, positive value (which ellipse-fitting
+    # algorithm maps back onto the same value)
+    axes1 = np.abs(np.random.randn(2))
+    a1 = np.max(axes1)
+    b1 = np.min(axes1)
+    x01 = np.random.randn()
+    y01 = np.random.randn()
+    theta1 = 0.1
+    x1, y1 = _ellipse(a1, b1, x01, y01, theta1, E=E)
+    starts = [0]
+
+    FE = FittedEllipse(x1, y1, starts)
+
+    tools.assert_raises(
+        ValueError,
+        FE.applyCompensationTo, *[x1, x1, starts])
+
+    tools.assert_raises(
+        ValueError,
+        FE.applyCompensationTo, *[y1, y1, starts])
+
+    return
