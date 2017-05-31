@@ -125,7 +125,7 @@ def test_FittedEllipse_getFits():
     return
 
 
-def test_FittedEllipse_applyCompensationTo_WrongInputs():
+def test_FittedEllipse_compensateEllipticity_WrongInputs():
     E = np.arange(0, 2 * np.pi, np.pi / 180)
 
     # Single ellipse
@@ -146,10 +146,10 @@ def test_FittedEllipse_applyCompensationTo_WrongInputs():
 
     tools.assert_raises(
         ValueError,
-        FE.applyCompensationTo, *[x1, x1, starts])
+        FE.compensateEllipticity, *[x1, x1, starts])
 
     tools.assert_raises(
         ValueError,
-        FE.applyCompensationTo, *[y1, y1, starts])
+        FE.compensateEllipticity, *[y1, y1, starts])
 
     return
