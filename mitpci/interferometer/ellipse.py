@@ -16,7 +16,7 @@ from fit_ellipse import fit_ellipse
 
 
 class FittedEllipse(object):
-    def __init__(self, x, y, starts):
+    def __init__(self, x, y, starts, t=None):
         '''Create an instance of the `FittedEllipse` class.
 
         Parameters:
@@ -40,7 +40,15 @@ class FittedEllipse(object):
             to determine the properties of the i-th ellipse.
             In total, `M` ellipses will be fit.
 
+        t - array_like, (`N`,)
+            The timestamps corresponding to points in `x` and `y`.
+            The timestamp separation is assumed to be constant.
+            [t] = AU
+
         '''
+        if len(x) != len(y):
+            raise ValueError('`x` and `y` must have same length')
+
         # Note the *unique* identity of the `x` and `y` arrays
         self.xid = id(x)
         self.yid = id(y)
@@ -53,6 +61,15 @@ class FittedEllipse(object):
         self.y0 = y0
         self.theta = theta
 
+        # Determine times corresponding to midpoint of each fitted slice
+        if t is not None:
+            if len(t) == len(x):
+                self.t = self.getSliceTimes(t, starts)
+            else:
+                raise ValueError('`t` must have same length as `x` and `y`')
+        else:
+            self.t = None
+
     def getSlice(self, ellipse, starts):
         'Get slice for ellipse w/ initial index `starts[ellipse]`.'
         if ellipse != (len(starts) - 1):
@@ -63,6 +80,17 @@ class FittedEllipse(object):
             sl = slice(starts[ellipse], None)
 
         return sl
+
+    def getSliceTimes(self, t, starts):
+        'Get times corresponding to midpoint of each slice.'
+        N = len(starts)
+        tmid = np.zeros(N)
+
+        for e in np.arange(N):
+            sl = self.getSlice(e, starts)
+            tmid[e] = 0.5 * (t[sl][-1] + t[sl][0])
+
+        return tmid
 
     def getFits(self, x, y, starts):
         'Get fits for ellipses w/ initial indices `starts`.'
@@ -77,7 +105,7 @@ class FittedEllipse(object):
         # Fit each ellipse
         for e in np.arange(N):
             sl = self.getSlice(e, starts)
-            a[e], b[e], x0[e], y0[e], theta[e]= fit_ellipse(x[sl], y[sl])
+            a[e], b[e], x0[e], y0[e], theta[e] = fit_ellipse(x[sl], y[sl])
 
         return a, b, x0, y0, theta
 

@@ -33,13 +33,33 @@ def test__ellipse():
     return
 
 
+def test_FittedEllipse__init__ValueErrors():
+    # Standard unit circle
+    E = np.arange(0, 2 * np.pi, np.pi / 180)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+
+    # Different sized `x` and `y` should raise ValueError
+    tools.assert_raises(
+        ValueError,
+        FittedEllipse, *[x, y[:-1], [0]])
+
+    # If times of different length than `x` and `y` are provided,
+    # a ValueError should be raised
+    t = np.arange(len(x))[:-1]
+    tools.assert_raises(
+        ValueError,
+        FittedEllipse, *[x, y, [0]], **{'t': t})
+
+    return
+
+
 def test_FittedEllipse_getSlice():
     # Unit circle w/ 1-degree spacing between successive points
     # and 1 full transits around origin
     N = 1
     dE = 1
     E = np.arange(0, 360 * N, dE)
-    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=(E * np.pi / 180))
     starts = np.where((E % 360) == 0)[0]
 
     FE = FittedEllipse(x, y, starts)
@@ -54,7 +74,7 @@ def test_FittedEllipse_getSlice():
     N = 2
     dE = 1
     E = np.arange(0, 360 * N, dE)
-    x, y = _ellipse(1, 1, 0, 0, 0, E=E)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=(E * np.pi / 180))
     starts = np.where((E % 360) == 0)[0]
 
     FE = FittedEllipse(x, y, starts)
@@ -68,6 +88,45 @@ def test_FittedEllipse_getSlice():
     tools.assert_equal(
         FE.getSlice(1, starts),
         slice(360, None))
+
+    return
+
+
+def test_FittedEllipse_getSliceTimes():
+    # Unit circle w/ 1-degree spacing between successive points
+    # and 1 full transits around origin
+    N = 1
+    dE = 1
+    E = np.arange(0, 360 * N, dE)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=(E * np.pi / 180))
+    starts = np.where((E % 360) == 0)[0]
+    t = np.arange(len(E), dtype='int')
+
+    FE = FittedEllipse(x, y, starts, t=t)
+
+    # Check slice time for first (and only) ellipse
+    tmid = 0.5 * (t[-1] + t[0])
+    np.testing.assert_array_equal(
+        FE.t,
+        np.array([tmid]))
+
+    # Unit circle w/ 1-degree spacing between successive points
+    # and 2 full transits around origin
+    N = 2
+    dE = 1
+    E = np.arange(0, 360 * N, dE)
+    x, y = _ellipse(1, 1, 0, 0, 0, E=(E * np.pi / 180))
+    starts = np.where((E % 360) == 0)[0]
+    t = np.arange(len(E), dtype='int')
+
+    FE = FittedEllipse(x, y, starts, t=t)
+
+    # Check slice times
+    tmid1 = 0.5 * (t[starts[0]] + t[starts[1] - 1])
+    tmid2 = 0.5 * (t[starts[1]] + t[-1])
+    np.testing.assert_array_equal(
+        FE.t,
+        np.array([tmid1, tmid2]))
 
     return
 
