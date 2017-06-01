@@ -9,7 +9,7 @@ parameters can be extracted.
 
 # # Standard library imports
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # Related 3rd-party imports
 from fit_ellipse import fit_ellipse
@@ -108,6 +108,42 @@ class FittedEllipse(object):
             a[e], b[e], x0[e], y0[e], theta[e] = fit_ellipse(x[sl], y[sl])
 
         return a, b, x0, y0, theta
+
+    def plotFits(self, tlim=None):
+        fig, axes = plt.subplots(5, 1, sharex=True)
+
+        # Create a local variable for dependent axis
+        if self.t is not None:
+            t = self.t.copy()
+        else:
+            t = np.arange(len(self.a))
+
+        if tlim is not None:
+            tind = np.arange(np.logical_and(
+                t >= tlim[0],
+                t <= tlim[-1]))[0]
+        else:
+            tind = slice(None, None)
+
+        axes[0].plot(t[tind], self.a[tind])
+        axes[0].set_ylabel(r'$a$')
+
+        axes[1].plot(t[tind], self.b[tind])
+        axes[1].set_ylabel(r'$b$')
+
+        axes[2].plot(t[tind], self.x0[tind])
+        axes[2].set_ylabel(r'$x_0$')
+
+        axes[3].plot(t[tind], self.y0[tind])
+        axes[3].set_ylabel(r'$y_0$')
+
+        axes[4].plot(t[tind], self.theta[tind])
+        axes[4].set_ylabel(r'$\theta$')
+        axes[4].set_xlabel(r'$t$')
+
+        plt.show()
+
+        return fig, axes
 
     def compensateEllipticity(self, x, y, starts):
         '''Use fitting parameters to invert affine transformation,
