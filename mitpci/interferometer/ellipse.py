@@ -53,8 +53,10 @@ class FittedEllipse(object):
         self.xid = id(x)
         self.yid = id(y)
 
+        self.starts = starts
+
         # Ellipse fitting
-        a, b, x0, y0, theta = self.getFits(x, y, starts)
+        a, b, x0, y0, theta = self.getFits(x, y)
         self.a = a
         self.b = b
         self.x0 = x0
@@ -64,38 +66,38 @@ class FittedEllipse(object):
         # Determine times corresponding to midpoint of each fitted slice
         if t is not None:
             if len(t) == len(x):
-                self.t = self.getSliceTimes(t, starts)
+                self.t = self.getSliceTimes(t)
             else:
                 raise ValueError('`t` must have same length as `x` and `y`')
         else:
             self.t = None
 
-    def getSlice(self, ellipse, starts):
-        'Get slice for ellipse w/ initial index `starts[ellipse]`.'
-        if ellipse != (len(starts) - 1):
-            sl = slice(starts[ellipse], starts[ellipse + 1])
+    def getSlice(self, ellipse):
+        'Get slice for ellipse w/ initial index `self.starts[ellipse]`.'
+        if ellipse != (len(self.starts) - 1):
+            sl = slice(self.starts[ellipse], self.starts[ellipse + 1])
         else:
             # The final ellipse is a boundary case that
             # requires special handling
-            sl = slice(starts[ellipse], None)
+            sl = slice(self.starts[ellipse], None)
 
         return sl
 
-    def getSliceTimes(self, t, starts):
+    def getSliceTimes(self, t):
         'Get times corresponding to midpoint of each slice.'
-        N = len(starts)
+        N = len(self.starts)
         tmid = np.zeros(N)
 
         for e in np.arange(N):
-            sl = self.getSlice(e, starts)
+            sl = self.getSlice(e)
             tmid[e] = 0.5 * (t[sl][-1] + t[sl][0])
 
         return tmid
 
-    def getFits(self, x, y, starts):
-        'Get fits for ellipses w/ initial indices `starts`.'
+    def getFits(self, x, y):
+        'Get fits for ellipses w/ initial indices `self.starts`.'
         # Initialize arrays
-        N = len(starts)
+        N = len(self.starts)
         a = np.zeros(N)
         b = np.zeros(N)
         x0 = np.zeros(N)
@@ -104,7 +106,7 @@ class FittedEllipse(object):
 
         # Fit each ellipse
         for e in np.arange(N):
-            sl = self.getSlice(e, starts)
+            sl = self.getSlice(e)
             a[e], b[e], x0[e], y0[e], theta[e] = fit_ellipse(x[sl], y[sl])
 
         return a, b, x0, y0, theta
@@ -145,7 +147,7 @@ class FittedEllipse(object):
 
         return fig, axes
 
-    def compensateEllipticity(self, x, y, starts):
+    def compensateEllipticity(self, x, y):
         '''Use fitting parameters to invert affine transformation,
         effectively mapping the ellipse back to a circle.
 
@@ -160,8 +162,8 @@ class FittedEllipse(object):
         yc = np.zeros(len(y))
 
         # Map each ellipse back to its corresponding circle
-        for e in np.arange(len(starts)):
-            sl = self.getSlice(e, starts)
+        for e in np.arange(len(self.starts)):
+            sl = self.getSlice(e)
 
             # Radius of corresponding circle is simply
             # an average of semi-major and semi-minor axes

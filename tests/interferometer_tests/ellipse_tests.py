@@ -66,7 +66,7 @@ def test_FittedEllipse_getSlice():
 
     # Check slicing for first (and only) ellipse
     tools.assert_equal(
-        FE.getSlice(0, starts),
+        FE.getSlice(0),
         slice(0, None))
 
     # Unit circle w/ 1-degree spacing between successive points
@@ -81,12 +81,12 @@ def test_FittedEllipse_getSlice():
 
     # Check slicing for first ellipse
     tools.assert_equal(
-        FE.getSlice(0, starts),
+        FE.getSlice(0),
         slice(0, 360))
 
     # Check slicing for final ellipse
     tools.assert_equal(
-        FE.getSlice(1, starts),
+        FE.getSlice(1),
         slice(360, None))
 
     return
@@ -205,11 +205,11 @@ def test_FittedEllipse_compensateEllipticity_WrongInputs():
 
     tools.assert_raises(
         ValueError,
-        FE.compensateEllipticity, *[x1, x1, starts])
+        FE.compensateEllipticity, *[x1, x1])
 
     tools.assert_raises(
         ValueError,
-        FE.compensateEllipticity, *[y1, y1, starts])
+        FE.compensateEllipticity, *[y1, y1])
 
     return
 
@@ -238,7 +238,7 @@ def test_FittedEllipse_compensateEllipticity():
     # Fit elliptical data and apply compensation
     starts = [0]
     FE = FittedEllipse(x1, y1, starts)
-    xc, yc = FE.compensateEllipticity(x1, y1, starts)
+    xc, yc = FE.compensateEllipticity(x1, y1)
 
     # Compare to expectations
     r1 = 0.5 * (a1 + b1)
@@ -263,15 +263,15 @@ def test_FittedEllipse_compensateEllipticity():
     y = np.concatenate((y1, y2))  # need unique identifier/memory
     starts = [0, len(E)]
     FE = FittedEllipse(x, y, starts)
-    xc, yc = FE.compensateEllipticity(x, y, starts)
+    xc, yc = FE.compensateEllipticity(x, y)
 
     # Compare to expectations
-    sl1 = FE.getSlice(0, starts)
+    sl1 = FE.getSlice(0)
     np.testing.assert_allclose(xc[sl1], r1 * np.cos(E))
     np.testing.assert_allclose(yc[sl1], r1 * np.sin(E))
 
     r2 = 0.5 * (a2 + b2)
-    sl2 = FE.getSlice(1, starts)
+    sl2 = FE.getSlice(1)
     np.testing.assert_allclose(xc[sl2], r2 * np.cos(E))
     np.testing.assert_allclose(yc[sl2], r2 * np.sin(E))
 
