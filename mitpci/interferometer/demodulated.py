@@ -43,6 +43,7 @@ class Lissajous(object):
             <mitpci.interferometer.ellipse.FittedEllipse>` instance
         The object containing the elliptical parameters that
         result from least-squares fitting the raw I&Q signals.
+        If `fit` is False, `E` will be `None`.
 
         It is assumed that the properties of the ellipse
         vary adiabatically throughout the shot; that is,
@@ -108,6 +109,7 @@ class Lissajous(object):
 
         '''
         self.shot = shot
+        self.E = None
 
         # Load raw I&Q signals
         if not quiet:
@@ -133,23 +135,7 @@ class Lissajous(object):
 
         # Fit I&Q, if desired
         if self.fit:
-            print '\nFitting I&Q signals to an ellipse'
-
-            # `self.getFringeIndices()` returns indices corresponding
-            # to the first point following a 2 * pi evolution
-            # of the measured bulk phase; however, for reasons of
-            # semantics, it does not return an index corresponding
-            # to the initial data point. Manually include index
-            # of initial data point here.
-            starts = np.concatenate(([0], self.getFringeIndices()))
-
-            self.E = FittedEllipse(
-                self.I.x,
-                self.Q.x,
-                starts,
-                t=self.I.t())
-        else:
-            self.E = None
+            self.getFit(quiet=quiet)
 
         # Compensate I&Q, if desired
         if self.compensate:
@@ -194,6 +180,35 @@ class Lissajous(object):
             ph, secular_change=(2 * np.pi))
 
         return fringe_indices
+
+    def getFit(self, quiet=False):
+        '''Get elliptical fit for each revolution of `self.I.x` and
+        `self.Q.x` about origin.
+
+        '''
+        if not quiet:
+            print '\nFitting I&Q signals to an ellipse'
+
+        if not self.fit:
+            self.fit = True
+
+        # `self.getFringeIndices()` returns indices corresponding
+        # to the first point following a 2 * pi evolution
+        # of the measured bulk phase; however, for reasons of
+        # semantics, it does not return an index corresponding
+        # to the initial data point. Manually include index
+        # of initial data point here.
+        starts = np.concatenate(([0], self.getFringeIndices()))
+
+        self.E = FittedEllipse(
+            self.I.x,
+            self.Q.x,
+            starts,
+            t=self.I.t())
+
+        # `self.E` is not really intended for use outside
+        # of object instance, so don't return anything
+        return
 
 
 class Demodulated(object):
