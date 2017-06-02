@@ -10,6 +10,190 @@ import matplotlib.pyplot as plt
 
 # Related 3rd-party imports
 from ..signal import Signal
+from .ellipse import FittedEllipse
+
+
+class Lissajous(object):
+    '''An object containing the interferometer I&Q signals;
+    plotting Q vs. I results in a Lissajous figure.
+
+    Attributes:
+    -----------
+    shot - int
+        The shot number of the retrieved signals.
+
+    I - :py:class:`Signal <mitpci.signal.Signal>` instance
+        The in-phase (I) signal of the interferometer.
+
+    Q - :py:class:`Signal <mitpci.signal.Signal>` instance
+        The quadrature (Q) signal of the interferometer.
+
+    fit - bool
+        If True, the I&Q signals have been fit to an ellipse
+        (in the least-squares sense) and `self.E` will
+        *not* be `None`.
+
+    compensate - bool
+        If True, the I&Q signals contained in `self.I.x` and
+        `self.Q.x`, respectively, have been mapped from an
+        ellipse to a circle using the fitting parameters
+        in `self.E`.
+
+    E - :py:class:`FittedEllipse
+            <mitpci.interferometer.ellipse.FittedEllipse>` instance
+        The object containing the elliptical parameters that
+        result from least-squares fitting the raw I&Q signals.
+
+        It is assumed that the properties of the ellipse
+        vary adiabatically throughout the shot; that is,
+        the properties of the ellipse vary much more slowly
+        than the time taken for the raw I&Q signals
+        to complete one full revolution around the origin.
+        Each full revolution around the origin is then
+        individually fit to an ellipse; compensation is
+        similarly handled on a revolution-by-revolution basis.
+        Because it is a time-consuming, iterative problem
+        to both fit each full revolution *and* ensure
+        continuity at the boundaries of each full revolution,
+        continuity is *not* guaranteed at the revolution
+        boundaries in the compensated I&Q signals. Instead,
+        an approximation is used to guarantee continuity
+        in the computed phase at the revolution boundaries,
+        as the phase is what we ultimately care about.
+
+    '''
+    def __init__(
+            self, shot, channel_I=1, channel_Q=2,
+            fit=True, compensate=True,
+            quiet=False, **signal_kwargs):
+        '''Create an instance of the `Lissajous` class.
+
+        Input parameters:
+        -----------------
+        shot - int
+            The DIII-D shot number.
+
+        channel_I - int
+            The channel of the mitpci system corresponding to the
+            interferometer's in-phase (I) signal
+
+        channel_Q - int
+            The channel of the mitpci system corresponding to the
+            interferometer's quadrature (Q) signal
+
+        fit - bool
+            If True, fit the I&Q signals to an ellipse.
+            If False but `compensate` is True, the I&Q signals
+            are still fit, as the compensation depends on
+            the fitting parameters.
+
+        compensate - bool
+            If True, use the fitted elliptical parameters to
+            compensate the I&Q signals, mapping them from
+            an ellipse to a circle.
+
+        quiet - bool
+            If True, suppress printing messages to the terminal.
+
+        signal_kwargs - any valid keyword arguments for
+            :py:class:`Signal <mitpci.signal.Signal>`.
+
+            For example, use
+
+                    D = Demodulated(167340, tlim=[1, 3.3])
+
+            to retrieve the I and Q signals for shot 167340 between
+            1 <= t [s] <= 3.3 from channels 1 and 2, respectively,
+            of the mitpci system.
+
+        '''
+        self.shot = shot
+
+        # Load raw I&Q signals
+        if not quiet:
+            print '\nRetrieving in-phase (I) signal for %i' % shot
+        self.I = Signal(shot, channel_I, **signal_kwargs)
+        self.I.x = self.I.x * self.I.volts_per_bit
+
+        if not quiet:
+            print 'Retrieving quadrature (Q) signal for %i' % shot
+        self.Q = Signal(shot, channel_Q, **signal_kwargs)
+        self.Q.x = self.Q.x * self.Q.volts_per_bit
+
+        # Parse whether or not to fit and compensate I&Q
+        if compensate:
+            self.fit = True
+            self.compensate = True
+        elif fit:
+            self.fit = True
+            self.compensate = False
+        else:
+            self.fit = False
+            self.compensate = False
+
+        # Fit I&Q, if desired
+        if self.fit:
+            print '\nFitting I&Q signals to an ellipse'
+
+            # `self.getFringeIndices()` returns indices corresponding
+            # to the first point following a 2 * pi evolution
+            # of the measured bulk phase; however, for reasons of
+            # semantics, it does not return an index corresponding
+            # to the initial data point. Manually include index
+            # of initial data point here.
+            starts = np.concatenate(([0], self.getFringeIndices()))
+
+            self.E = FittedEllipse(
+                self.I.x,
+                self.Q.x,
+                starts,
+                t=self.I.t())
+        else:
+            self.E = None
+
+        # Compensate I&Q, if desired
+        if self.compensate:
+            print '\nCompensating I&Q signals'
+            self.I.x, self.Q.x = self.E.compensateEllipticity(
+                self.I.x, self.Q.x)
+
+    def getPhase(self, unwrap=True):
+        'Return (potentially) unwrapped phase computed from I&Q signals.'
+        # In our implementation, the LO power > the RF power.
+        # For our I&Q demodulator (Mini-Circuits MIQC-60WD+),
+        # LO > RF implies that the signal from the Q-pin obeys
+        #
+        #               Q(phi) = I(phi - pi / 2)
+        #
+        # That is, the signal from the Q pin lags the signal
+        # from the I pin by pi / 2 radians. Now, if we assume
+        # that I = I0 * cos(phi), this implies that
+        # Q = Q0 * cos(phi - pi / 2) = Q0 * sin(phi), and
+        #
+        #               phi = tan^{-1}(Q / I)
+        #
+        # Note that `np.arctan2(...)` operates correctly
+        # on integers and arrays of integers, so there is
+        # no need to precondition `Q` and `I` as arrays
+        # of floats
+        ph = np.arctan2(self.Q.x, self.I.x)
+
+        if unwrap:
+            ph = np.unwrap(ph)
+
+        return ph
+
+    def getFringeIndices(self):
+        '''Get indices corresponding to movement from one fringe to another
+        (i.e. when the measured bulk phase evolves by 2 * pi).
+
+        '''
+        ph = self.getPhase()
+
+        fringe_indices = _secular_change_indices(
+            ph, secular_change=(2 * np.pi))
+
+        return fringe_indices
 
 
 class Demodulated(object):
