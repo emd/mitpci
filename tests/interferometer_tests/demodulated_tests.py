@@ -1,8 +1,10 @@
 import numpy as np
-from mitpci.interferometer.demodulated import _secular_change_indices
+from mitpci.interferometer.demodulated import (
+    _secular_change_indices, _get_boundary_delta,
+    _enforce_boundary_conditions)
 
 
-def test_secular_change_indices():
+def test__secular_change_indices():
     # With the below definition for the sawtooth function, we see that
     # for points `x1` and `x2` satisfying floor(x1) == floor(x2)
     #
@@ -42,3 +44,66 @@ def sawtooth(x):
 
     '''
     return (2 * (x - np.floor(x))) - 1
+
+
+def test__get_boundary_delta():
+    da = 10
+    a = np.arange(0, 110, da)
+    starts = np.array([0, 5])
+
+    np.testing.assert_equal(
+        np.array([da]),
+        _get_boundary_delta(a, starts))
+
+    prefactor = 10
+    np.testing.assert_equal(
+        np.array([prefactor * da]),
+        _get_boundary_delta(prefactor * a, starts))
+
+    divisor = 10
+    np.testing.assert_equal(
+        np.array([da / divisor]),
+        _get_boundary_delta(a / divisor, starts))
+
+    return
+
+
+def test__enforce_boundary_conditions():
+    # Create initial array
+    astart = 0
+    astop = 110
+    da = 1
+    a = np.arange(astart, astop, da)
+
+    # Specify sub-segments of `a` and
+    # corresponding boundary conditions
+    starts = np.arange(astart, astop, 10 * da)
+    bc = da * np.ones(len(starts) - 1).astype(a.dtype.name)
+
+    # Make copies of `a` whose boundary conditions
+    # will subsequently be perturbed
+    a1 = a.copy()
+    a2 = a.copy()
+
+    # Perturb boundary conditions of `a1` and `a2`
+    for i, start in enumerate(starts[1:]):
+        a1[start:] += (((-1) ** i) * start)
+        a2[start:] += (((-1) ** (i + 1)) * start)
+
+    # Enforcing original boundary conditions on `a1` and `a2`
+    # should result in equality with `a`
+    np.testing.assert_equal(
+        a,
+        _enforce_boundary_conditions(a1, starts, bc))
+
+    np.testing.assert_equal(
+        a,
+        _enforce_boundary_conditions(a2, starts, bc))
+
+    # Further, original boundary conditions on `a`
+    # should *not* alter `a`
+    np.testing.assert_equal(
+        a,
+        _enforce_boundary_conditions(a, starts, bc))
+
+    return

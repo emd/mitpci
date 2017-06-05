@@ -109,6 +109,8 @@ class Lissajous(object):
 
         '''
         self.shot = shot
+        self.fit = False
+        self.compensate = False
         self.E = None
 
         # Load raw I&Q signals
@@ -122,28 +124,14 @@ class Lissajous(object):
         self.Q = Signal(shot, channel_Q, **signal_kwargs)
         self.Q.x = self.Q.x * self.Q.volts_per_bit
 
-        # Parse whether or not to fit and compensate I&Q
-        if compensate:
-            self.fit = True
-            self.compensate = True
-        elif fit:
-            self.fit = True
-            self.compensate = False
-        else:
-            self.fit = False
-            self.compensate = False
-
-        # Fit I&Q, if desired
-        if self.fit:
+        # Fit and compensate I&Q, if desired
+        if fit or compensate:
             self.getFit(quiet=quiet)
 
-        # Compensate I&Q, if desired
-        if self.compensate:
-            print '\nCompensating I&Q signals'
-            self.I.x, self.Q.x = self.E.compensateEllipticity(
-                self.I.x, self.Q.x)
+            if compensate:
+                self.compensateEllipticity(quiet=quiet)
 
-    def getPhase(self, unwrap=True):
+    def getPhase(self, unwrap=True, enforce_fringe_continuity=True):
         'Return (potentially) unwrapped phase computed from I&Q signals.'
         # In our implementation, the LO power > the RF power.
         # For our I&Q demodulator (Mini-Circuits MIQC-60WD+),
@@ -167,48 +155,117 @@ class Lissajous(object):
         if unwrap:
             ph = np.unwrap(ph)
 
+        # Compensation of I&Q ellipticity on a fringe-by-fringe basis
+        # does *not* ensure continuity of the resulting phase
+        # across fringe boundaries. Here, if desired, we force
+        # the phase change across each fringe boundary to be equal
+        # to the corresponding phase change computed from the
+        # *raw* I&Q signals, ensuring continuity across fringes.
+        # Note that this may result in an offset in the bulk phase;
+        # however, the bulk phase in our system corresponds to
+        # vibrations and is of little physical importance --
+        # we only care that the small, plasma-induced fluctuations
+        # that ride on top of the vibration-induced phase
+        # are mapped onto a circle.
+        if self.compensate and enforce_fringe_continuity:
+            ph = _enforce_boundary_conditions(
+                ph, self.E.starts, self._raw_phase_change_at_fringe)
+
         return ph
-
-    def getFringeIndices(self):
-        '''Get indices corresponding to movement from one fringe to another
-        (i.e. when the measured bulk phase evolves by 2 * pi).
-
-        '''
-        ph = self.getPhase()
-
-        fringe_indices = _secular_change_indices(
-            ph, secular_change=(2 * np.pi))
-
-        return fringe_indices
 
     def getFit(self, quiet=False):
         '''Get elliptical fit for each revolution of `self.I.x` and
         `self.Q.x` about origin.
 
         '''
-        if not quiet:
-            print '\nFitting I&Q signals to an ellipse'
-
+        # I&Q signals *not* already fit
         if not self.fit:
+            if not quiet:
+                print '\nFitting I&Q signals to an ellipse'
+
+            fringe_info = self._getRawFringeInfo(quiet=quiet)
+            starts = fringe_info[0]
+            self._raw_phase_change_at_fringe = fringe_info[1]
+
+            self.E = FittedEllipse(
+                self.I.x,
+                self.Q.x,
+                starts,
+                t=self.I.t())
+
             self.fit = True
 
-        # `self.getFringeIndices()` returns indices corresponding
-        # to the first point following a 2 * pi evolution
-        # of the measured bulk phase; however, for reasons of
-        # semantics, it does not return an index corresponding
-        # to the initial data point. Manually include index
-        # of initial data point here.
-        starts = np.concatenate(([0], self.getFringeIndices()))
-
-        self.E = FittedEllipse(
-            self.I.x,
-            self.Q.x,
-            starts,
-            t=self.I.t())
+        # I&Q signals already fit
+        else:
+            if not quiet:
+                print '\nI&Q signals already fit to an ellipse'
 
         # `self.E` is not really intended for use outside
         # of object instance, so don't return anything
         return
+
+    def compensateEllipticity(self, quiet=False):
+        '''Use fitting parameters to compensate ellipticity
+        of measured I&Q signals, effectively mapping
+        `self.I.x` and `self.Q.x` onto a circle.
+
+        '''
+        # I&Q signals *not* already compensated
+        if not self.compensate:
+            # Fit ellipse, if not already fit
+            if not self.fit:
+                self.getFit(quiet=quiet)
+
+            if not quiet:
+                print '\nCompensating I&Q signals'
+
+            self.I.x, self.Q.x = self.E.compensateEllipticity(
+                self.I.x, self.Q.x)
+
+            self.compensate = True
+
+        # I&Q signals already compensated
+        else:
+            if not quiet:
+                print '\nI&Q signals already compensated'
+
+        return
+
+    def _getRawFringeInfo(self, quiet=False):
+        '''Get indices corresponding to the start of a new fringe
+        in the *raw* I&Q signals (i.e. when the raw, measured bulk
+        phase evolves by 2 * pi) and the change in phase at the
+        fringe boundary.
+
+        '''
+        # I&Q signals *not* already fit (i.e. need to compute fringe info)
+        if not self.fit:
+            ph = self.getPhase()
+
+            ind = _secular_change_indices(ph, secular_change=(2 * np.pi))
+
+            # `_secular_change_indices` returns indices corresponding
+            # the first point following each full revolution of the I&Q
+            # signals about the origin; however, for reasons of
+            # semantics, it does not return an index corresponding
+            # to the initial data point. Manually include index
+            # of initial data point here.
+            ind = np.concatenate(([0], ind))
+
+            # Determine change in phase at boundary between
+            # successive fringes. Note that there is *not*
+            # a fringe prior to `ind[0]`; thus, `ind[0]` does
+            # *not* correspond to a boundary between two fringes.
+            dph = _get_boundary_delta(ph, ind)
+
+            return ind, dph
+
+        # I&Q signals already fit (i.e. do not need to compute fringe info)
+        else:
+            if not quiet:
+                print '\nRaw fringe information already calculated'
+
+            return
 
 
 class Demodulated(object):
@@ -541,3 +598,115 @@ def _secular_change_indices(x, secular_change=1, plot=False):
         plt.show()
 
     return ind
+
+
+def _get_boundary_delta(x, starts):
+    '''Get change in `x` between `starts` and `starts - 1`.
+
+    Parameters:
+    -----------
+    x - array_like, (`N`,)
+        An array that has been subdivided into `M` sub-segments.
+
+    starts - array_like, (`M`,)
+        Index specifying the start of each sub-segment in `x`,
+        with the ith sub-segment beginning at index `starts[i]`.
+        `M` < `N`
+
+    Returns:
+    --------
+    dx - array_like, (`M` - 1,)
+        Array corresponding to the *change* in `x` across
+        the boundary of each sub-segment.
+
+    '''
+    if len(starts) > 1:
+        dx = x[starts[1:]] - x[starts[1:] - 1]
+    else:
+        # Only one sub-segment, so there is, by definition,
+        # no boundary between successive sub-segments
+        dx = None
+
+    return dx
+
+
+def _enforce_boundary_conditions(x, starts, bc):
+    '''Get array corresponding to `x` altered by boundary conditions `bc`.
+
+    Parameters:
+    -----------
+    x - array_like, (`N`,)
+        An array that has been subdivided into `M` sub-segments.
+        The change in `x` between the ith and (i - 1)th segment
+        will be changed to the boundary condition specified
+        by `bc[i]`.
+
+    starts - array_like, (`M`,)
+        Index specifying the start of each sub-segment in `x`,
+        with the ith sub-segment beginning at index `starts[i]`.
+        `M` < `N`
+
+    bc - array_like, (`M` - 1,)
+        The desired boundary conditions between successive sub-segments.
+        Denoting the returned, corrected signal as `xc`, the boundary
+        condition between the ith and (i - 1)th segment of `xc` is
+
+            bc[i] = xc[starts[i]] - xc[starts[i] - 1]
+
+    Returns:
+    --------
+    xc - array_like, (`N`,)
+        The array corresponding to input signal `x` modified by
+        the boundary conditions specified in `bc`.
+
+    '''
+    xc = x.copy()
+
+    # Get existing boundary conditions of input array `x`
+    dx = _get_boundary_delta(x, starts)
+
+    # To enforce the desired boundary conditions such that
+    #
+    #       bc[i] = xc[starts[i]] - xc[starts[i] - 1],
+    #
+    # we must *subtract* the existing boundary condition `dx[i]`
+    # from all points beyond the (i - 1)th segment and
+    # *add* the desired boundary conditions `bc[i]`
+    # to all points beyond the (i - 1)th segment.
+    #
+    # Perhaps the most straightforward approach is iterative; i.e.
+    #
+    #       for i, start in enumerate(starts):
+    #           xc[start:] -= (dx[i] - bc[i])
+    #
+    # However, for large `x` (e.g. millions of data points) and
+    # large `starts` (e.g. splitting `x` into thousands of segments),
+    # the above iterative approach is *very slow*.
+    #
+    # Note that the above boundary-condition enforcement
+    # for the ith boundary is equivalent to a *cumulative sum*
+    # of all of the preceding boundary conditions up to and
+    # including the ith boundary. The computation can thus
+    # be partially vectorized and greatly accelerated
+    # by using Numpy's `cumsum(...)` function.
+    dx_cum = np.cumsum(dx)
+    bc_cum = np.cumsum(bc)
+
+    Nbnd = len(starts[1:])
+
+    for bnd in np.arange(Nbnd):
+        # Initial index for slicing segment
+        i1 = starts[1:][bnd]
+
+        # Final index for slicing segment, with
+        # appropriate handling of last segment
+        if bnd < (Nbnd - 1):
+            i2 = starts[1:][bnd + 1]
+        else:
+            i2 = None
+
+        # Slice segment and enforce boundary condition
+        sl = slice(i1, i2)
+        xc[sl] -= (dx_cum[bnd] - bc_cum[bnd])
+
+    return xc
