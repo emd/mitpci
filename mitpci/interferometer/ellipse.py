@@ -107,7 +107,13 @@ class FittedEllipse(object):
         # Fit each ellipse
         for e in np.arange(N):
             sl = self.getSlice(e)
-            a[e], b[e], x0[e], y0[e], theta[e] = fit_ellipse(x[sl], y[sl])
+
+            try:
+                params = fit_ellipse(x[sl], y[sl])
+            except:
+                params = np.nan * np.ones(5)
+
+            a[e], b[e], x0[e], y0[e], theta[e] = params
 
         return a, b, x0, y0, theta
 
@@ -165,19 +171,26 @@ class FittedEllipse(object):
         for e in np.arange(len(self.starts)):
             sl = self.getSlice(e)
 
-            # Radius of corresponding circle is simply
-            # an average of semi-major and semi-minor axes
-            r = 0.5 * (self.a[e] + self.b[e])
+            # Compensate slice if fit was successful
+            if not np.isnan(self.a[e]):
+                # Radius of corresponding circle is simply
+                # an average of semi-major and semi-minor axes
+                r = 0.5 * (self.a[e] + self.b[e])
 
-            # Build up compensated x-coordinate iteratively
-            xc[sl] = (x[sl] - self.x0[e]) * np.cos(self.theta[e])
-            xc[sl] += ((y[sl] - self.y0[e]) * np.sin(self.theta[e]))
-            xc[sl] *= (r / self.a[e])
+                # Build up compensated x-coordinate iteratively
+                xc[sl] = (x[sl] - self.x0[e]) * np.cos(self.theta[e])
+                xc[sl] += ((y[sl] - self.y0[e]) * np.sin(self.theta[e]))
+                xc[sl] *= (r / self.a[e])
 
-            # Build up compensated y-coordinate iteratively
-            yc[sl] = (y[sl] - self.y0[e]) * np.cos(self.theta[e])
-            yc[sl] -= ((x[sl] - self.x0[e]) * np.sin(self.theta[e]))
-            yc[sl] *= (r / self.b[e])
+                # Build up compensated y-coordinate iteratively
+                yc[sl] = (y[sl] - self.y0[e]) * np.cos(self.theta[e])
+                yc[sl] -= ((x[sl] - self.x0[e]) * np.sin(self.theta[e]))
+                yc[sl] *= (r / self.b[e])
+
+            # Don't compensate slice if fit was *not* successful
+            else:
+                xc[sl] = x[sl]
+                yc[sl] = y[sl]
 
         return xc, yc
 
