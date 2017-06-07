@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 # Related 3rd-party imports
 from ..signal import Signal
 from .ellipse import FittedEllipse
+import filters
 
 
 class Lissajous(object):
@@ -266,6 +267,99 @@ class Lissajous(object):
                 print '\nRaw fringe information already calculated'
 
             return
+
+
+class Phase(object):
+    '''An object containing the interferometer-measured phase.
+
+    Attributes:
+    -----------
+    shot - int
+        The shot number of the phase signal.
+
+    compensate - bool
+        If True, systematic errors in the phase calculation
+        have been compensated/minimized by mapping the I&Q signals
+        (from which the phase is derived) from an ellipse to a circle.
+
+    filt - :py:class:`Kaiser <filters.fir.Kaiser>` instance or None
+        The filter applied to the phase signal. If `None`, the phase
+        signal has not been filtered. Signal and time points
+        contaminated by the filter's boundary effects are *not*
+        returned/accessible from the attributes and methods
+        of the `Phase` class.
+
+    x - array-like, (`N`,)
+        The retrieved phase signal, as derived from the I&Q signals
+        of input `L` and filtered with `self.filt`. Only points free
+        of the filter's boundary effects are accessible.
+        [x] = rad
+
+    Fs - float
+        The signal sampling rate.
+        [Fs] = samples / second
+
+    t0 - float
+        The time corresponding to `self.x[0]`; note that `self.x[0]`
+        and `self.x[-1]` (and all the points in between) are *free*
+        from the boundary effects resulting from application of
+        `self.filt`.
+        [t0] = s
+
+    '''
+    def __init__(self, L, filt=None):
+        '''Create an instance of the `Phase` class.
+
+        Parameters:
+        -----------
+        L - :py:class:`Lissajous
+                <mitpci.interferometer.demodulated.Lissajous>` instance
+            Instance of `Lissajous` class containing I&Q signals
+            for given shot. A ValueError is raised if `L` is *not*
+            an instance of the `Lissajous` class.
+
+        filt - :py:class:`Kaiser <filters.fir.Kaiser>` instance or None
+            The filter applied to the phase signal. If `None`,
+            do not filter the phase signal. A ValueError is raised
+            if `filt` is *not* an instance of `filters.fir.Kaiser`
+            or `None`.
+
+        '''
+        # Ensure `L` is of correct type
+        if not isinstance(L, Lissajous):
+            raise ValueError(
+                '`L` must be `mitpci.interferometer.demodulated.Lissajous`')
+
+        self.shot = L.shot
+        self.compensate = L.compensate
+        self.Fs = L.I.Fs
+
+        # Ensure `filt` is of correct type
+        if isinstance(filt, filters.fir.Kaiser):
+            self.filt = filt
+            self._valid = self.filt.getValidSlice()
+        elif filt is None:
+            self.filt = None
+            self._valid = slice(None, None)
+        else:
+            raise ValueError(
+                '`filt` must be `filters.fir.Kaiser` or `None`')
+
+        self.x = self._getPhase(L)
+        self.t0 = L.I.t()[self._valid][0]
+
+    def _getPhase(self, L):
+        'Get phase signal after filtering by `self.filt`.'
+        ph = L.getPhase()
+
+        if self.filt is not None:
+            ph = self.filt.applyTo(ph)
+
+        return ph[self._valid]
+
+    def t(self):
+        'Get times for points in `self.x`.'
+        return self.t0 + (np.arange(len(self.x)) / self.Fs)
 
 
 class Demodulated(object):

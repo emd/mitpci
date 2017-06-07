@@ -1,7 +1,9 @@
 import numpy as np
+from nose import tools
 from mitpci.interferometer.demodulated import (
     _secular_change_indices, _get_boundary_delta,
-    _enforce_boundary_conditions)
+    _enforce_boundary_conditions,
+    Lissajous, Phase)
 
 
 def test__secular_change_indices():
@@ -105,5 +107,22 @@ def test__enforce_boundary_conditions():
     np.testing.assert_equal(
         a,
         _enforce_boundary_conditions(a, starts, bc))
+
+    return
+
+
+def test_Phase__init__():
+    shot = 171110
+    L = Lissajous(shot, fit=False, compensate=False)
+
+    # Needs to receive object of type `Lissajous`
+    tools.assert_raises(
+        ValueError,
+        Phase, *[L.I], **{'filt': None})
+
+    # Needs to receive `filt` that is `None` or `filters.fir.Kaiser`
+    tools.assert_raises(
+        ValueError,
+        Phase, *[L], **{'filt': {}})
 
     return
