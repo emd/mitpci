@@ -1,5 +1,6 @@
 import numpy as np
 from nose import tools
+import filters
 from mitpci.interferometer.demodulated import (
     _secular_change_indices, _get_boundary_delta,
     _enforce_boundary_conditions,
@@ -124,5 +125,12 @@ def test_Phase__init__():
     tools.assert_raises(
         ValueError,
         Phase, *[L], **{'filt': {}})
+
+    # Use incorrect sampling rate
+    Fs_bad = 0.5 * L.I.Fs
+    hpf = filters.fir.Kaiser(-120, 5e3, 10e3, pass_zero=False, Fs=Fs_bad)
+    tools.assert_raises(
+        ValueError,
+        Phase, *[L], **{'filt': hpf})
 
     return

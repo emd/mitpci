@@ -14,6 +14,10 @@ from .ellipse import FittedEllipse
 import filters
 
 
+# Default highpass filter to be used w/ interferometer data
+_hpf = filters.fir.Kaiser(-120, 5e3, 10e3, pass_zero=False, Fs=4e6)
+
+
 class Lissajous(object):
     '''An object containing the interferometer I&Q signals;
     plotting Q vs. I results in a Lissajous figure.
@@ -307,7 +311,7 @@ class Phase(object):
         [t0] = s
 
     '''
-    def __init__(self, L, filt=None):
+    def __init__(self, L, filt=_hpf):
         '''Create an instance of the `Phase` class.
 
         Parameters:
@@ -336,8 +340,11 @@ class Phase(object):
 
         # Ensure `filt` is of correct type
         if isinstance(filt, filters.fir.Kaiser):
-            self.filt = filt
-            self._valid = self.filt.getValidSlice()
+            if filt.Fs == self.Fs:
+                self.filt = filt
+                self._valid = self.filt.getValidSlice()
+            else:
+                raise ValueError('`filt` not designed for signal sample rate')
         elif filt is None:
             self.filt = None
             self._valid = slice(None, None)
