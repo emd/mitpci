@@ -9,7 +9,7 @@ config = {
     'packages': ['mitpci'],
     'install_requires': [
         'numpy', 'matplotlib', 'scipy', 'MDSplus', 'nose'],
-        # 'random_data', 'bci', 'magnetics'],  # <- Not on PyPI
+        # 'random_data', 'filters', 'bci', 'magnetics'],  # <- Not on PyPI
     'author': 'Evan M. Davis',
     'author_email': 'emd@mit.edu',
     'url': '',
