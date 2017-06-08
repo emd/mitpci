@@ -52,7 +52,7 @@ class ToroidalCorrelation(CrossSpectralDensity):
             Object corresponding to the MIT interferometer's
             phase signal.
 
-        V2 - None, or :py:class:`Signal <bci.signal.Signal>`
+        V2 - None, or :py:class:`Phase <bci.signal.Phase>`
             Object corresponding to V2 interferometer's phase.
             If `V2` is `None`, the V2-measured phase corresponding
             to `Ph` is automatically loaded.
@@ -110,7 +110,7 @@ class ToroidalCorrelation(CrossSpectralDensity):
 
             # V2 record is *bracketed* by `tlim`; that is,
             # V2.t()[0] >= tlim[0] and V2.t()[-1] <= tlim[-1].
-            V2 = bci.signal.Signal(
+            V2 = bci.signal.Phase(
                 Ph.shot, chord='V2', beam='CO2', tlim=tlim,
                 vibration_subtracted=vibration_subtracted)
 
@@ -137,7 +137,7 @@ class ToroidalCorrelation(CrossSpectralDensity):
         'Check that `Ph` and `V2` are the correct types and are compatible.'
         # Valid types for `Ph` and `V2`
         Phtype = Phase
-        V2type = bci.signal.Signal
+        V2type = bci.signal.Phase
 
         # Check that user-provided `Ph` is of correct type
         if type(Ph) is not Phtype:
