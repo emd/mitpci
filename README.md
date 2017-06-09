@@ -1,4 +1,5 @@
-Python tools for retrieving signals digitized by the mitpci system.
+Python tools for retrieving and analyzing signals
+digitized by the mitpci system.
 
 
 Background:
@@ -19,8 +20,9 @@ implemented in this module.
 However, there are several specialized analysis routines for
 the heterodyne interferometer, including:
 
-* compensation of demodulator imperfections (i.e. DC offsets and
-  amplitude imbalances between the I and Q signals), and
+* compensation of demodulator imperfections (i.e. DC offsets,
+  amplitude imbalance, and phase imbalance between the I and Q signals),
+  and
 * correlation with the toroidally separated V2 interferometer
   for toroidal mode-number identification.
 
@@ -30,8 +32,8 @@ The use of these routines is discussed below.
 Installation:
 =============
 
-... on GA's Iris cluster:
--------------------------
+For use on GA's Iris cluster:
+-----------------------------
 To use the `mitpci` package, change to the directory
 you'd like to download the source files to, e.g.
 
@@ -43,15 +45,19 @@ and retrieve the source files from github by typing
 
 The created `mitpci` directory defines the
 package's top-level directory. The `mitpci` package
-depends on three additional packages:
+depends on several additional packages:
 
 * [random_data](https://github.com/emd/random_data),
+* [filters](https://github.com/emd/filters),
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 * [bci](https://github.com/emd/bci), and
 * [magnetics](https://github.com/emd/magnetics).
 
 These packages should similarly be cloned, e.g.
 
     $ git clone https://github.com/emd/random_data.git
+    $ git clone https://github.com/emd/filters.git
+    $ git clone https://github.com/ndvanforeest/fit_ellipse.git
     $ git clone https://github.com/emd/bci
     $ git clone https://github.com/emd/magnetics
 
@@ -76,12 +82,23 @@ this must be altered to point at the
 top-level directory of the cloned `mitpci` package.
 Similarly, the TCL variable `modulefiles_dir`
 must be altered to point at the directory containing
-the modulefiles for `random_data`, `bci`, and `magnetics`.
+the modulefiles for
+`random_data`,
+`filters`,
+`fit_ellipse`,
+`bci`, and
+`magnetics`.
 That's it! You shouldn't need to change anything else in
 the `mitpci` modulefile.
 (Of course, similar changes will also need to be made
 to the `<package>_root` TCL variable in the modulefile
-for the `random_data`, `bci`, and `magnetics` modules).
+for the
+`random_data`,
+`filters`,
+`fit_ellipse`,
+`bci`, and
+`magnetics`
+modules).
 The `mitpci` module can
 then be loaded, unloaded, etc., as is discussed in the
 above-linked Iris documentation.
@@ -98,11 +115,13 @@ mitpci MDSplus server, which is located behind GA's firewall; if you
 are not within the firewall, the module will err and the tests will fail
 due to the inability to read from the mitpci MDSplus server.
 
-... elsewhere:
---------------
+For use on other systems:
+-------------------------
 First, install the `mitpci` dependencies that are *not* on PyPI:
 
 * [random_data](https://github.com/emd/random_data),
+* [filters](https://github.com/emd/filters),
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 * [bci](https://github.com/emd/bci), and
 * [magnetics](https://github.com/emd/magnetics).
 
@@ -152,6 +171,10 @@ due to the inability to read from the mitpci MDSplus server.
 
 Use:
 ====
+
+
+Raw signals:
+------------
 To retrieve a signal digitized on channel `channel` on the
 "mitpci" digitizer system from DIII-D shot `shot` between
 times `tlim`, use the `mitpci.signal.Signal` class
@@ -173,26 +196,60 @@ The signal can be converted to volts via `sig.x * sig.volts_per_bit`.
 Note that the `mitpci.signal.Signal` class allows retrieval of both
 PCI and heterodyne interferometer measurements.
 
-However, a specialized `mitpci.interferometer.Demodulated` class
+
+Interferometer I&Q:
+-------------------
+A specialized `mitpci.interferometer.Lissajous` class
 also exists for retrieval of the heterodyne interferometer's
-in-phase (I) and quadrature (Q) signals, e.g.
+in-phase (I) and quadrature (Q) signals
+(plotting Q vs. I produces a Lissajous figure), e.g.
 
 ```python
-D = mitpci.interferometer.Demodulated(shot, tlim=tlim)
+L = mitpci.interferometer.Lissajous(shot, tlim=tlim)
 
 ```
 
-Note that the `mitpci.interferometer.Demodulated` class
+Note that the `mitpci.interferometer.Lissajous` class
 automatically compensates for demodulator imperfections
-(i.e. DC offsets and amplitude imbalances between I and Q).
+(i.e. DC offsets, amplitude imbalance, and phase imbalance
+between I and Q).
 The post-processed I and Q objects are accessed via
-`D.I` and `D.Q`, respectively.
-Both `D.I` and `D.Q` are *instances* of the `mitpci.signal.Signal` class, so
-the raw digitized signal (in bits) is accessed via e.g. `D.I.x`, and
-the timebase can be generated via e.g. `D.I.t()`.
-The phase is readily calculated via `D.getPhase()`.
+`L.I` and `L.Q`, respectively.
+Both `L.I` and `L.Q` are *instances* of the `mitpci.signal.Signal` class,
+so the signal is accessed via e.g. `L.I.x`, and
+the timebase can be generated via e.g. `L.I.t()`.
+Here, however, the signals have units of volts rather than bits.
 
-Spectral information can then be readily computed and visualized using the
+
+Interferometer-measured phase:
+------------------------------
+The interferometer-measured phase can be computed
+from a `Lissajous` instance using
+the `mitpci.interferometer.Phase` class e.g.
+
+```python
+Ph = mitpci.interferometer.Phase(L)
+
+```
+
+By default, a zero-delay, high-pass filter with
+a 6-dB (in energy) knee at 10 kHz and
+a transition width of 5 kHz is applied to the computed phase;
+this removes both
+low-frequency vibrational contributions and
+bulk-plasma contributions
+to the measured phase,
+leaving (predominantly) the fluctuating, plasma-induced phase.
+If *no* filtering is desired, simply specify
+`Ph = mitpci.interferometer.Phase(L, filt=None)`.
+Other zero-delay FIR filters can be designed with
+my [filters](https://github.com/emd/filters) package and
+applied to the measured phase using the `filt` keyword argument.
+
+
+Spectra:
+--------
+Spectral information can be readily computed and visualized using the
 [random_data package](https://github.com/emd/random_data).
 In particular, toroidal mode numbers can be measured by
 correlating the MIT heterodyne interferometer
@@ -206,10 +263,10 @@ Tens = 5e-3         # Ensemble time length, [Tens] = s
 Nreal_per_ens = 5   # Number of realizations per ensemeble
 
 # Determine mode numbers from interferometers
-xcorr_int = mitpci.interferometer.ToroidalCorrelation(
-    D, Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+TorCorr_int = mitpci.interferometer.ToroidalCorrelation(
+    Ph, Tens=Tens, Nreal_per_ens=Nreal_per_ens)
 
-xcorr_int.plotModeNumber(
+TorCorr_int.plotModeNumber(
     xlabel='$t \, [\mathrm{s}]$',
     ylabel='$f \, [\mathrm{Hz}]$',
     flim=[0, 300e3],
@@ -240,10 +297,10 @@ from magnetic measurements using my
 ```python
 import magnetics
 
-torsigs = magnetics.signal.ToroidalSignals(shot, tlim=tlim)
+TorSigs = magnetics.signal.ToroidalSignals(shot, tlim=tlim)
 
 A = rd.array.Array(
-    torsigs.x, torsigs.locations, Fs=torsigs.Fs, t0=torsigs.t0,
+    TorSigs.x, TorSigs.locations, Fs=TorSigs.Fs, t0=TorSigs.t0,
     Tens=Tens, Nreal_per_ens=Nreal_per_ens)
 
 fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -259,7 +316,7 @@ A.plotModeNumber(
     mode_number_lim=[0, 11],
     cmap=cmap_mag)
 
-xcorr_int.plotModeNumber(
+TorCorr_int.plotModeNumber(
     ax=axes[0],
     title='interferometers',
     xlabel='$t \, [\mathrm{s}]$',
