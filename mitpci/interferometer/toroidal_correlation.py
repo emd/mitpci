@@ -42,7 +42,7 @@ class ToroidalCorrelation(CrossSpectralDensity):
 
     '''
     def __init__(self, Ph, V2=None, trigger_offset=-32.5e-6,
-                 vibration_subtracted=True, **csd_kwargs):
+                 vibration_subtracted=False, **csd_kwargs):
         '''Create an instance of the `ToroidalCorrelation` class.
 
         Input Parameters:
@@ -110,8 +110,10 @@ class ToroidalCorrelation(CrossSpectralDensity):
 
             # V2 record is *bracketed* by `tlim`; that is,
             # V2.t()[0] >= tlim[0] and V2.t()[-1] <= tlim[-1].
+            # Use the same filter-design parameters as in `Ph.filt`.
             V2 = bci.signal.Phase(
-                Ph.shot, chord='V2', beam='CO2', tlim=tlim,
+                Ph.shot, chord='V2', beam='CO2',
+                tlim=tlim, filt=Ph.filt,
                 vibration_subtracted=vibration_subtracted)
 
         self.shot = Ph.shot
@@ -130,8 +132,6 @@ class ToroidalCorrelation(CrossSpectralDensity):
             self, V2.x[sl_V2], ph_MIT_interp[sl_MIT],
             Fs=V2.Fs, t0=V2.t0,
             **csd_kwargs)
-
-        # Colormaps and easier plotting
 
     def _checkSignals(self, Ph, V2):
         'Check that `Ph` and `V2` are the correct types and are compatible.'
