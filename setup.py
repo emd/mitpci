@@ -5,11 +5,12 @@ except ImportError:
 
 config = {
     'name': 'mitpci',
-    'version': '0.3',
+    'version': '0.4',
     'packages': ['mitpci'],
     'install_requires': [
         'numpy', 'matplotlib', 'scipy', 'MDSplus', 'nose'],
-        # 'random_data', 'bci', 'magnetics'],  # <- Not on PyPI
+        # 'random_data', 'filters', 'fit_ellipse',  # <- Not on PyPI
+        # 'bci', 'magnetics'],
     'author': 'Evan M. Davis',
     'author_email': 'emd@mit.edu',
     'url': '',

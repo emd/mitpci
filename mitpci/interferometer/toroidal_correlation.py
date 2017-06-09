@@ -11,7 +11,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 # Related 3rd-party imports
-from .demodulated import Demodulated
+from .demodulated import Phase
 import bci
 from random_data.spectra import CrossSpectralDensity
 from magnetics import colormap
@@ -41,21 +41,21 @@ class ToroidalCorrelation(CrossSpectralDensity):
         have been removed.
 
     '''
-    def __init__(self, D, V2=None, trigger_offset=-32.5e-6,
-                 vibration_subtracted=True, **csd_kwargs):
+    def __init__(self, Ph, V2=None, trigger_offset=-32.5e-6,
+                 vibration_subtracted=False, **csd_kwargs):
         '''Create an instance of the `ToroidalCorrelation` class.
 
         Input Parameters:
         -----------------
-        D - :py:class:`Demodulated
-                <mitpci.interferometer.demodulated.Demodulated>`
+        Ph - :py:class:`Phase
+                <mitpci.interferometer.demodulated.Phase>`
             Object corresponding to the MIT interferometer's
-            demodulated in-phase (I) and quadrature (Q) signals.
+            phase signal.
 
-        V2 - None, or :py:class:`Signal <bci.signal.Signal>`
+        V2 - None, or :py:class:`Phase <bci.signal.Phase>`
             Object corresponding to V2 interferometer's phase.
             If `V2` is `None`, the V2-measured phase corresponding
-            to `D` is automatically loaded.
+            to `Ph` is automatically loaded.
 
         trigger_offset - float
             The timebase offset between the MIT and V2 interferometers.
@@ -96,31 +96,33 @@ class ToroidalCorrelation(CrossSpectralDensity):
             Note that the `t0` and `Fs` keywords will be
             neglected if provided in `csd_kwargs`, as these
             parameters are automatically determined from
-            `D` and `V2`.
+            `Ph` and `V2`.
 
         '''
-        self._checkSignals(D, V2)
+        self._checkSignals(Ph, V2)
         csd_kwargs = self._checkCsdKwargs(csd_kwargs)
 
         # Load V2 data, if not provided by user
         if V2 is None:
             # Determine initial and final times
             # of MIT interferometer record
-            tlim = D.I.t()[[0, -1]]
+            tlim = Ph.t()[[0, -1]]
 
             # V2 record is *bracketed* by `tlim`; that is,
             # V2.t()[0] >= tlim[0] and V2.t()[-1] <= tlim[-1].
-            V2 = bci.signal.Signal(
-                D.shot, chord='V2', beam='CO2', tlim=tlim,
+            # Use the same filter-design parameters as in `Ph.filt`.
+            V2 = bci.signal.Phase(
+                Ph.shot, chord='V2', beam='CO2',
+                tlim=tlim, filt=Ph.filt,
                 vibration_subtracted=vibration_subtracted)
 
-        self.shot = D.shot
+        self.shot = Ph.shot
         self.trigger_offset = trigger_offset
         self.vibration_subtracted = V2.vibration_subtracted
 
         # Interpolate MIT interferometer onto V2 time base
         print '\nInterpolating MIT measurements onto V2 timebase'
-        ph_MIT_interp = (interp1d(D.I.t(), D.getPhase()))(V2.t())
+        ph_MIT_interp = (interp1d(Ph.t(), Ph.x))(V2.t())
 
         # Account for trigger offset
         sl_V2, sl_MIT = self._getOffsetSlices(V2)
@@ -131,28 +133,26 @@ class ToroidalCorrelation(CrossSpectralDensity):
             Fs=V2.Fs, t0=V2.t0,
             **csd_kwargs)
 
-        # Colormaps and easier plotting
+    def _checkSignals(self, Ph, V2):
+        'Check that `Ph` and `V2` are the correct types and are compatible.'
+        # Valid types for `Ph` and `V2`
+        Phtype = Phase
+        V2type = bci.signal.Phase
 
-    def _checkSignals(self, D, V2):
-        'Check that `D` and `V2` are the correct types and are compatible.'
-        # Valid types for `D` and `V2`
-        Dtype = Demodulated
-        V2type = bci.signal.Signal
-
-        # Check that user-provided `D` is of correct type
-        if type(D) is not Dtype:
-            raise ValueError('`D` must be of type %s' % Dtype)
+        # Check that user-provided `Ph` is of correct type
+        if type(Ph) is not Phtype:
+            raise ValueError('`Ph` must be of type %s' % Phtype)
 
         # Check user-provided `V2` is of correct type and
-        # is compatible with `D`
+        # is compatible with `Ph`
         if V2 is None:
             pass
         elif type(V2) is not V2type:
             raise ValueError('`V2` must be of type %s' % V2type)
-        elif D.shot != V2.shot:
-            raise ValueError('`D` and `V2` correspond to different shots')
-        elif (D.I.t()[0] > V2.t()[-1]) or (D.I.t()[-1] < V2.t()[0]):
-            raise ValueError('No temporal overlap between `D` and `V2`')
+        elif Ph.shot != V2.shot:
+            raise ValueError('`Ph` and `V2` correspond to different shots')
+        elif (Ph.t()[0] > V2.t()[-1]) or (Ph.t()[-1] < V2.t()[0]):
+            raise ValueError('No temporal overlap between `Ph` and `V2`')
 
         return
 
