@@ -49,17 +49,17 @@ depends on several additional packages:
 
 * [random_data](https://github.com/emd/random_data),
 * [filters](https://github.com/emd/filters),
-* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 * [bci](https://github.com/emd/bci), and
 * [magnetics](https://github.com/emd/magnetics).
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 
 These packages should similarly be cloned, e.g.
 
     $ git clone https://github.com/emd/random_data.git
     $ git clone https://github.com/emd/filters.git
-    $ git clone https://github.com/ndvanforeest/fit_ellipse.git
     $ git clone https://github.com/emd/bci
     $ git clone https://github.com/emd/magnetics
+    $ git clone https://github.com/ndvanforeest/fit_ellipse.git
 
 Now, package management is cleanly handled on Iris via
 [modules](https://diii-d.gat.com/diii-d/Iris#Environment_modules).
@@ -85,9 +85,9 @@ must be altered to point at the directory containing
 the modulefiles for
 `random_data`,
 `filters`,
-`fit_ellipse`,
-`bci`, and
-`magnetics`.
+`bci`,
+`magnetics`, and
+`fit_ellipse`.
 That's it! You shouldn't need to change anything else in
 the `mitpci` modulefile.
 (Of course, similar changes will also need to be made
@@ -95,9 +95,9 @@ to the `<package>_root` TCL variable in the modulefile
 for the
 `random_data`,
 `filters`,
-`fit_ellipse`,
-`bci`, and
-`magnetics`
+`bci`,
+`magnetics`, and
+`fit_ellipse`
 modules).
 The `mitpci` module can
 then be loaded, unloaded, etc., as is discussed in the
@@ -121,9 +121,9 @@ First, install the `mitpci` dependencies that are *not* on PyPI:
 
 * [random_data](https://github.com/emd/random_data),
 * [filters](https://github.com/emd/filters),
-* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 * [bci](https://github.com/emd/bci), and
 * [magnetics](https://github.com/emd/magnetics).
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
 
 (Installation instructions provided in each of the links).
 
