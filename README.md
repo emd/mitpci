@@ -49,9 +49,9 @@ depends on several additional packages:
 
 * [random_data](https://github.com/emd/random_data),
 * [filters](https://github.com/emd/filters),
-* [bci](https://github.com/emd/bci), and
-* [magnetics](https://github.com/emd/magnetics).
-* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
+* [bci](https://github.com/emd/bci),
+* [magnetics](https://github.com/emd/magnetics), and
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse).
 
 These packages should similarly be cloned, e.g.
 
@@ -121,9 +121,9 @@ First, install the `mitpci` dependencies that are *not* on PyPI:
 
 * [random_data](https://github.com/emd/random_data),
 * [filters](https://github.com/emd/filters),
-* [bci](https://github.com/emd/bci), and
-* [magnetics](https://github.com/emd/magnetics).
-* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse),
+* [bci](https://github.com/emd/bci),
+* [magnetics](https://github.com/emd/magnetics), and
+* [fit_ellipse](https://github.com/ndvanforeest/fit_ellipse).
 
 (Installation instructions provided in each of the links).
 
