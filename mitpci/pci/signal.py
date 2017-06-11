@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Related 3rd-party imports
+# Intra-package imports
 from ..signal import Signal
 
 
