@@ -7,6 +7,30 @@ from ..signal import Signal
 
 
 class Phase(Signal):
+    '''An object containing the PCI-measured phase. Note that
+    the phase is only determined up to a calibration constant.
+
+    Attributes:
+    -----------
+    shot - int
+        The shot number of the phase signal.
+
+    channel - int
+        The channel of the PCI system.
+
+    x - array-like, (`N`,)
+        The PCI-measured phase, determined up to a calibration constant.
+        [x] = rad
+
+    Fs - float
+        The signal sampling rate.
+        [Fs] = samples / second
+
+    t0 - float
+        The time corresponding to `self.x[0]`.
+        [t0] = s
+
+    '''
     def __init__(self, shot, channel, quiet=False, **signal_kwargs):
         '''Create an instance of the `Phase` class.
 
