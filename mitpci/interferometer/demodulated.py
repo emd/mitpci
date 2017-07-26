@@ -106,7 +106,7 @@ class Lissajous(object):
 
             For example, use
 
-                    D = Demodulated(167340, tlim=[1, 3.3])
+                    L = Lissajous(167340, tlim=[1, 3.3])
 
             to retrieve the I and Q signals for shot 167340 between
             1 <= t [s] <= 3.3 from channels 1 and 2, respectively,
