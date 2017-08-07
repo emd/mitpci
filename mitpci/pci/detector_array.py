@@ -14,6 +14,30 @@ from random_data.array import ArrayStencil
 
 
 class DetectorArray(ArrayStencil):
+    '''An object characterizing the PCI detector-to-digitizer mapping.
+
+    This class is derived from :py:class:`ArrayStencil
+    <random_data.array.ArrayStencil>` and thus shares all of its
+    attributes and methods. Attributes and properties *unique* to
+    :py:class:`DetectorArray <mitpci.pci.detector_array.DetectorArray>`
+    are discussed below.
+
+    Attributes:
+    -----------
+    shot - int
+        The DIII-D shot number.
+
+    digitizer_channels - array_like, (`M`,)
+        The channels of the MITPCI digitizer system that map to the
+        detector elements in `self.locations`.
+
+    Properties:
+    -----------
+    detector_elements - array_like, (`M`,)
+        A property that simply points to `self.locations`, which gives
+        the detector elements that correspond to `self.digitizer_channels`.
+
+    '''
     def __init__(self, shot, digitizer_channels):
         '''Create instance of the PCI `DetectorArray` class.
 
