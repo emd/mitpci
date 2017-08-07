@@ -35,18 +35,26 @@ class DetectorArray(ArrayStencil):
         '''
         self.shot = shot
 
-        # Get digitizer to detector mapping and parse results
+        # Get digitizer to detector mapping and parse results. Note that
+        # `digitizer_channels` is explicitly a class attribute, while
+        # `detector_elements` is not. This is because the subsequent
+        # call to the base class's (i.e. `ArrayStencil`) initialization
+        # routine creates an attribute called `locations` that is
+        # identical to `detector_elements`; to make this interdependence
+        # explicit, we've defined a class property `detector_elements()`
+        # that simply points to `locations`.
         mapping = self.getDigitizerToDetectorMapping(digitizer_channels)
         self.digitizer_channels = mapping[0]
-        self.detector_elements = mapping[1]
+        detector_elements = mapping[1]
 
-        # # Create corresponding stencil
-        # ArrayStencil.__init__(
-        #     self,
-        #     digitizer_channels,
-        #     include_autocorrelations=True)
+        # Create corresponding stencil
+        ArrayStencil.__init__(
+            self,
+            detector_elements,
+            include_autocorrelations=True)
 
     def getDigitizerToDetectorMapping(self, digitizer_channels):
+        'Get mapping of digitizer channels to PCI detector elements.'
         # Determine the detector elements in use for `self.shot`.
         # Note that `detector_elements[i]` gives the detector
         # element corresponding to digitizer channel `i + 1`.
@@ -57,7 +65,7 @@ class DetectorArray(ArrayStencil):
         min_digitizer_channel = 1
         max_digitizer_channel = len(detector_elements)
 
-        # Ensure that values in `digitizer_channels` are valid & sorted
+        # Ensure that values in `digitizer_channels` are valid & sorted.
         if ((np.min(digitizer_channels) < min_digitizer_channel) or
                 np.max(digitizer_channels) > max_digitizer_channel):
             raise ValueError(
@@ -74,9 +82,25 @@ class DetectorArray(ArrayStencil):
 
         # Remove digitizer channels corresponding to dead detector elements
         # or mapped to something other than the PCI detector array (e.g.
-        # the I&Q signals of the heterodyne interferometer)
+        # the I&Q signals of the heterodyne interferometer).
         ind = np.where(detector_elements != 0)[0]
         detector_elements = detector_elements[ind]
         digitizer_channels = digitizer_channels[ind]
 
+        # Finally, sort `detector_elements` from smallest to largest;
+        # apply the same indexing to `digitizer_channels` to preserve
+        # the correct detector-to-digitizer mapping. By sorting here,
+        # we prevent any subsequent chronological sorting of
+        # `detector_elements` from re-ordering `detector_elements`
+        # relative to `digitizer_channels`, which would destroy the
+        # detector-to-digitizer mapping.
+        ind = np.argsort(detector_elements)
+        detector_elements = detector_elements[ind]
+        digitizer_channels = digitizer_channels[ind]
+
         return digitizer_channels, detector_elements
+
+    @property
+    def detector_elements(self):
+        'Get detector elements corresponding to `self.digitizer_channels.'
+        return self.locations
