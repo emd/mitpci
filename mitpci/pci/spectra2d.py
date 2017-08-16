@@ -1,3 +1,4 @@
+import MDSplus as mds
 import random_data as rd
 
 
@@ -130,3 +131,27 @@ class TwoDimensionalAutoSpectralDensity(
             self, corr, spatial_method='burg',
             burg_params=rd.spectra2d.default_burg_params,
             fourier_params=rd.spectra2d.default_fourier_params)
+
+
+def kmax(shot):
+    '''Get PCI's maximum wavenumber for DIII-D shot number `shot`.
+
+    Input parameters:
+    -----------------
+    shot - int
+        The DIII-D shot number.
+
+    Returns:
+    --------
+    kmax - float
+        The PCI's maximum wavenumber for `shot`. Note that
+        kmax > 0 indicates that PCI detector element #1 maps
+        to the outermost major radius.
+        [kmax] = rad / m
+
+    '''
+    tree = mds.Tree('pci', shot=shot, mode='ReadOnly')
+    node = tree.getNode('.OPTICS.KMAX')
+    kmax = node.getData().data()
+
+    return kmax
