@@ -2,7 +2,7 @@ import random_data as rd
 
 
 class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
-    '''A class for computing the complex-valued, correlation
+    '''A class for computing the complex-valued correlation
     function corresponding to the PCI measurements.
 
     Attributes:
