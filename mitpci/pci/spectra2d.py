@@ -1,3 +1,4 @@
+import numpy as np
 import MDSplus as mds
 import random_data as rd
 
@@ -9,30 +10,29 @@ class TwoDimensionalAutoSpectralDensity(
 
     Attributes:
     -----------
-    Sxx - array_like, (`Nxi`, `Nf`)
+    Sxx - array_like, (`Nk`, `Nf`)
         An array of the estimated autospectral density as a
         function of:
 
-            - xi = 1 / wavelength (1st index, `Nxi`), and
+            - wavenumber (1st index, `Nk`), and
             - frequency (2nd index, `Nf`).
 
         `Sxx` is normalized such that integrating over all of `Sxx`
         yields the total power in the signal PCI signal.
 
-        [Sxx] = rad^2 / (Hz * m)
+        [Sxx] = rad^2 / (Hz * (rad / m))
 
-    xi - array_like, (`Nxi`,)
-        The inverse-spatial grid. Note that xi = (1 / wavelength) such that
-        the wavenumber k is related to xi via k = (2 * pi * xi).
-        [xi] = 1 / m
+    k - array_like, (`Nk`,)
+        The wavenumber grid.
+        [k] = rad / m
 
     f - array_like, (`Nf`,)
         The frequency grid.
-        [f] = [self.Fs]
+        [f] = Hz
 
-    dxi - float
-        The spacing of the inverse-spatial grid.
-        [dxi] = 1 / m
+    dk - float
+        The spacing of the wavenumber grid.
+        [dk] = rad / m
 
     df - float
         The spacing of the frequency grid.
@@ -127,10 +127,49 @@ class TwoDimensionalAutoSpectralDensity(
         '''
         self.shot = corr.shot
 
+        # Compute spectrum
         rd.spectra2d.TwoDimensionalAutoSpectralDensity.__init__(
             self, corr, spatial_method='burg',
-            burg_params=rd.spectra2d.default_burg_params,
-            fourier_params=rd.spectra2d.default_fourier_params)
+            burg_params=burg_params,
+            fourier_params=fourier_params)
+
+        # Get maximum wavenumber
+        self._kmax = kmax(self.shot)
+
+        if self._kmax < 0:
+            # kmax < 0 indicates that PCI detector element #1
+            # maps to the innermost major radius of the beam.
+            # To make contact with the usual convention that
+            # k_R > 0 indicates propagation in the positive
+            # major-radial direction, we need to flip `Sxx`.
+            self.Sxx = np.flipud(self.Sxx)
+
+            # Because `self.xi` is *not exactly* symmetric
+            # about zero, we also need to flip and negate it
+            self.xi = -self.xi[::-1]
+
+        # Create wavenumber grid
+        xi2k_conversion = np.abs(self._kmax) / np.max(np.abs(self.xi))
+        self.k =  self.xi * xi2k_conversion
+        self.dk = self.k[1] - self.k[0]
+
+        del self.xi, self.dxi
+
+    def plotSpectralDensity(self, klim=None, flim=None, vlim=None,
+                            cmap='viridis', interpolation='none', fontsize=16,
+                            title=None, xlabel=r'$k$', ylabel=r'$f$',
+                            cblabel=r'$|S_{xx}(k,f)|$',
+                            ax=None, fig=None, geometry=111):
+        'Plot magnitude of spectral density on log scale.'
+        ax = rd.spectra.nonparametric._plot_image(
+            self.k, self.f, np.abs(self.Sxx.T),
+            xlim=klim, ylim=flim, vlim=vlim,
+            norm='log', cmap=cmap, interpolation=interpolation,
+            title=title, xlabel=xlabel, ylabel=ylabel, cblabel=cblabel,
+            fontsize=fontsize,
+            ax=ax, fig=fig, geometry=geometry)
+
+        return ax
 
 
 def kmax(shot):
