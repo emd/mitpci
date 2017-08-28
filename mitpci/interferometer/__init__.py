@@ -1,2 +1,2 @@
-from demodulated import Lissajous, Phase, Demodulated
+from demodulated import Lissajous, Phase
 from toroidal_correlation import ToroidalCorrelation
