@@ -398,7 +398,7 @@ plt.show()
 
 ```
 
-![pci_correlation_function](https://raw.githubusercontent.com/emd/mitpci/Skf/figs/pci_correlation_function.png)
+![pci_correlation_function](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_correlation_function.png)
 
 Note that this is a plot of the *normalized* complex-valued, spatial
 cross-correlation function. That is, at each frequency `f`,
@@ -456,11 +456,11 @@ asd2d.plotSpectralDensity(flim=flim)
 
 ```
 
-![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/Skf/figs/pci_2d_spectrum.png)
+![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_2d_spectrum.png)
 
 Spatial resolution typically increases with higher `p`, but
 higher `p` can produce "pole splitting" and can introduce
-numerical artifacts. Spatial estimates can also be made
+other numerical artifacts. Spatial estimates can also be made
 via a Fourier method (`spatial_method = 'fourier'` along
 with its own associated `fourier_params`), but
 the limited number of spatial samples typically
