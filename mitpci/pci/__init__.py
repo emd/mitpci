@@ -1,2 +1,5 @@
 from signal import Phase
+from detector_array import DetectorArray
+from correlation import ComplexCorrelationFunction
+from spectra2d import TwoDimensionalAutoSpectralDensity
 from check_centering import check_centering
