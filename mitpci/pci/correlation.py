@@ -1,6 +1,10 @@
 import random_data as rd
 
 
+# Unit conversions
+_ms_per_s = 1000.
+
+
 class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
     '''A class for computing the complex-valued correlation
     function corresponding to the PCI measurements.
@@ -102,3 +106,41 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
             self, Ph_pci.x, Ph_pci.detector_elements,
             tlim=tlim, equalize=equalize,
             print_status=print_status, **csd_kwargs)
+
+    def plotNormalizedCorrelationFunction(
+            self, xlim=None, flim=None, vlim=[-1, 1],
+            units='lab',
+            cmap='viridis', interpolation='none', fontsize=16,
+            xlabel=None, ylabel=None, no_nan=False):
+        'Plot normalized correlation function, Gxy(delta, f) / Gxy(0, f).'
+        # Determine y-axis units
+        if str.lower(units) == 'lab':
+            fmult = 1. / _ms_per_s
+            funits = 'kHz'
+        else:
+            fmult = 1.
+            funits = 'Hz'
+
+        # Determine labels, if needed
+        if xlabel is None:
+            xsymbol = r'$\mathregular{\delta}$'
+            xlabel = 'element separation, %s' % xsymbol
+
+        if ylabel is None:
+            ysymbol = 'f'
+            ylabel = (r'$\mathregular{%s \; [%s]}$'
+                      % (ysymbol, funits))
+
+        # Convert frequency to desired units for plotting
+        self.f *= fmult
+
+        # Plot
+        rd.array.SpatialCrossCorrelation.plotNormalizedCorrelationFunction(
+            self, xlim=xlim, flim=flim, vlim=vlim,
+            cmap=cmap, interpolation=interpolation, fontsize=fontsize,
+            xlabel=xlabel, ylabel=ylabel, no_nan=no_nan)
+
+        # Convert frequency back to original units
+        self.f /= fmult
+
+        return
