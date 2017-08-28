@@ -3,6 +3,11 @@ import MDSplus as mds
 import random_data as rd
 
 
+# Unit conversions
+_cm_per_m = 100.
+_ms_per_s = 1000.
+
+
 class TwoDimensionalAutoSpectralDensity(
         rd.spectra2d.TwoDimensionalAutoSpectralDensity):
     '''A class for estimating the PCI's 2-dimensional autospectral density
@@ -156,16 +161,53 @@ class TwoDimensionalAutoSpectralDensity(
         del self.xi, self.dxi
 
     def plotSpectralDensity(self, klim=None, flim=None, vlim=None,
-                            cmap='viridis', interpolation='none', fontsize=16,
-                            title=None, xlabel=r'$k$', ylabel=r'$f$',
-                            cblabel=r'$|S_{xx}(k,f)|$',
+                            units='lab',
+                            cmap='viridis', interpolation='none',
+                            fontsize=16, title=None,
+                            xlabel=None, ylabel=None,
+                            cblabel=None, cborientation='vertical',
                             ax=None, fig=None, geometry=111):
         'Plot magnitude of spectral density on log scale.'
+        if str.lower(units) == 'lab':
+            kmult = 1. / _cm_per_m
+            kunits = 'cm^{-1}'
+
+            fmult = 1. / _ms_per_s
+            funits = 'kHz'
+
+            Sxxmult = _cm_per_m * _ms_per_s
+            Sxxunits = 'rad^2 / (kHz \cdot cm^{-1})'
+        else:
+            kmult = 1.
+            kunits = 'm^{-1}'
+
+            fmult = 1.
+            funits = 'Hz'
+
+            Sxxmult = 1
+            Sxxunits = 'rad^2 / (Hz \cdot m^{-1})'
+
+        if xlabel is None:
+            xsymbol = 'k'
+            xlabel = (r'$\mathregular{%s \; [%s]}$'
+                      % (xsymbol, kunits))
+
+        if ylabel is None:
+            ysymbol = 'f'
+            ylabel = (r'$\mathregular{%s \; [%s]}$'
+                      % (ysymbol, funits))
+
+        if cblabel is None:
+            cbsymbol = '|S_{xx}(k,f)|'
+            cblabel = (r'$\mathregular{%s \; [%s]}$'
+                       % (cbsymbol, Sxxunits))
+
         ax = rd.spectra.nonparametric._plot_image(
-            self.k, self.f, np.abs(self.Sxx.T),
+            kmult * self.k, fmult * self.f, Sxxmult * np.abs(self.Sxx.T),
             xlim=klim, ylim=flim, vlim=vlim,
             norm='log', cmap=cmap, interpolation=interpolation,
-            title=title, xlabel=xlabel, ylabel=ylabel, cblabel=cblabel,
+            title=title, xlabel=xlabel, ylabel=ylabel,
+            cblabel=cblabel, cborientation=cborientation,
             fontsize=fontsize,
             ax=ax, fig=fig, geometry=geometry)
 
