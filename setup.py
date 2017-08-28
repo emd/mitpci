@@ -5,7 +5,7 @@ except ImportError:
 
 config = {
     'name': 'mitpci',
-    'version': '0.4.3',
+    'version': '0.5',
     'packages': ['mitpci'],
     'install_requires': [
         'numpy', 'matplotlib', 'scipy', 'MDSplus', 'nose'],

@@ -15,9 +15,7 @@ priority is to provide Python tools for robust and flexible signal retrieval.
 
 The second priority of this module is to provide specialized routines
 for analysis of the respective signals.
-Currently, there are no specialized analysis routines for the PCI
-implemented in this module.
-However, there are several specialized analysis routines for
+There are several specialized analysis routines for
 the heterodyne interferometer, including:
 
 * compensation of demodulator imperfections (i.e. DC offsets,
@@ -25,6 +23,12 @@ the heterodyne interferometer, including:
   and
 * correlation with the toroidally separated V2 interferometer
   for toroidal mode-number identification.
+
+There are also several specialized analysis routines for the PCI, including:
+
+* estimation of the complex-valued, spatial cross-correlation function and
+* estimation of the corresponding two-dimensional autospectral density
+  with Burg autoregression and Fourier spatial methods.
 
 The use of these routines is discussed below.
 
@@ -228,7 +232,7 @@ from a `Lissajous` instance using
 the `mitpci.interferometer.Phase` class e.g.
 
 ```python
-Ph = mitpci.interferometer.Phase(L)
+Ph_int = mitpci.interferometer.Phase(L)
 
 ```
 
@@ -241,14 +245,14 @@ bulk-plasma contributions
 to the measured phase,
 leaving (predominantly) the fluctuating, plasma-induced phase.
 If *no* filtering is desired, simply specify
-`Ph = mitpci.interferometer.Phase(L, filt=None)`.
+`Ph_int = mitpci.interferometer.Phase(L, filt=None)`.
 Other zero-delay FIR filters can be designed with
 my [filters](https://github.com/emd/filters) package and
 applied to the measured phase using the `filt` keyword argument.
 
 
-Spectra:
---------
+Interferometer-measured mode-number spectra:
+--------------------------------------------
 Spectral information can be readily computed and visualized using the
 [random_data package](https://github.com/emd/random_data).
 In particular, toroidal mode numbers can be measured by
@@ -264,7 +268,7 @@ Nreal_per_ens = 5   # Number of realizations per ensemeble
 
 # Determine mode numbers from interferometers
 TorCorr_int = mitpci.interferometer.ToroidalCorrelation(
-    Ph, Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+    Ph_int, Tens=Tens, Nreal_per_ens=Nreal_per_ens)
 
 TorCorr_int.plotModeNumber(
     xlabel='$t \, [\mathrm{s}]$',
@@ -327,3 +331,138 @@ TorCorr_int.plotModeNumber(
 ```
 
 ![interferometer_and_magnetic_mode_numbers](https://raw.githubusercontent.com/emd/mitpci/master/figs/interferometer_and_magnetic_mode_numbers.png)
+
+
+PCI-measured phase:
+-------------------
+The PCI-measured phase from each digitizer channel
+can be easily retrieved via the `mitpci.pci.Phase` class e.g.
+
+```python
+shot = 171521
+tlim = [1.2, 1.5]  # [tlim] = s
+digitizer_channels = np.arange(16) + 1
+
+Ph_pci = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim)
+
+```
+
+Even though all 16 digitizer channels are specified above,
+the `mitpci.pci.Phase` class will *only* retrieve data
+from the subset of `digitizer_channels` that are actually
+mapped to functioning PCI channels.
+By default, a zero-delay, high-pass filter with
+a 6-dB (in energy) knee at 10 kHz and
+a transition width of 5 kHz is applied to the computed phase
+(this same filter is applied by default to the interferometer data).
+If *no* filtering is desired, simply specify
+`Ph_pci = mitpci.pci.Phase(..., filt=None)`.
+Other zero-delay FIR filters can be designed with
+my [filters](https://github.com/emd/filters) package and
+applied to the measured phase using the `filt` keyword argument.
+As the PCI only measures the plasma-induced phase
+up to a calibration constant,
+a calibration constant (`rad_per_bit`, in the class's `__init__()`)
+from a recent PCI-interferometer audio cross-calibration
+is applied to the PCI signal.
+
+
+PCI complex-valued, spatial cross-correlation function:
+-------------------------------------------------------
+Typically, the digitized PCI signal corresponds to measurements
+from nonuniformly spaced detector elements
+(due to a combination of limited digitizer channels/capacity and
+damaged detector elements).
+Fortunately, the correlation function
+(from which the two-dimensional autospectral density can be computed)
+can still be estimated from nonuniformly spaced samples.
+For example, the PCI complex-valued, spatial cross-correlation function
+can be easily estimated and visualized as follows
+(using the `Ph_pci` instance from above):
+
+```python
+import matplotlib.pyplot as plt
+
+# Spectral-estimation parameters:
+# -------------------------------
+tlim = [1.33, 1.38]  # [tlim] = s; this defines ensemble's temporal bounds
+Nreal_per_ens = 500  # number of realizations in the ensemble
+
+# Compute and plot correlation function:
+# --------------------------------------
+corr = mitpci.pci.ComplexCorrelationFunction(
+    Ph_pci, tlim=tlim, Nreal_per_ens=Nreal_per_ens)
+
+corr.plotNormalizedCorrelationFunction()
+plt.show()
+
+```
+
+![pci_correlation_function](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_correlation_function.png)
+
+Note that this is a plot of the *normalized* complex-valued, spatial
+cross-correlation function. That is, at each frequency `f`,
+the correlation function `Gxy(delta, f)` is normalized to `Gxy(0, f)`
+(i.e. its value at zero separation (`delta = 0`) and frequency `f`).
+This allows for easy visualization of the correlation function's structure
+even if `Gxy(delta, f)` varies by several orders of magnitude as
+the frequency varies.
+Note further the conspicuous gaps at various element separations;
+for the currently digitized detector elements
+(viewable from `Ph_pci.detector_elements`),
+no such correlation pairs correspond to such separations, so
+we *cannot* estimate the correlation function at these separations.
+The `mitpci.pci.ComplexCorrelationFunction` class provides
+a method to linearly interpolate across these gaps.
+For example, to linearly interpolate across all gaps
+less than or equal to 2 detector-element spacings, use
+
+```python
+corr.interpolate(2)
+
+```
+
+Careful inspection of the normalized correlation function, however,
+reveals that the correlation function can vary substantially
+over a detector-element separation or two, so
+such linear interpolation should not be accepted blindly.
+(Presumably, which detector elements are digitized
+could be optimized to provide better coverage
+of the correlation function and prevent such gaps;
+such investigations are relegated to future work).
+If the interpolation produces undesired results,
+the previous correlation function can be restored via
+`corr.unInterpolate()`.
+
+
+PCI two-dimensional autospectral density estimate:
+--------------------------------------------------
+The two-dimensional autospectral density can be estimated
+from the complex correlation function as follows
+(proceed with the correlation function from above
+after having linearly interpolated across all gaps
+that are less than or equal to 2 detector-element spacings):
+
+```python
+# Compute 2d autospectral density. Temporal estimates are
+# via Welch's method of overlapped periodograms, while
+# spatial estimates are via a Burg autoregressive method
+# with `p` poles and `Nk` points.
+asd2d = mitpci.pci.TwoDimensionalAutoSpectralDensity(
+    corr, spatial_method='burg', burg_params={'p': 5, 'Nk': 1000})
+
+flim = [10, 1500]  # [flim] = kHz
+asd2d.plotSpectralDensity(flim=flim)
+
+```
+
+![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_2d_spectrum.png)
+
+Spatial resolution typically increases with higher `p`, but
+higher `p` can produce "pole splitting" and can introduce
+other numerical artifacts. Spatial estimates can also be made
+via a Fourier method (`spatial_method = 'fourier'` along
+with its own associated `fourier_params`), but
+the limited number of spatial samples typically
+results in the Fourier estimates performing
+much more poorly than the Burg estimates.

@@ -271,7 +271,7 @@ class Signal(object):
 
     def t(self):
         'Get times for points in `self.x`.'
-        return self.t0 + (np.arange(len(self.x)) / self.Fs)
+        return self.t0 + (np.arange(self.x.shape[-1]) / self.Fs)
 
     @property
     def volts_per_bit(self,  Vpp_max=8.):
