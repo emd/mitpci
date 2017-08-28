@@ -82,7 +82,7 @@ class TwoDimensionalAutoSpectralDensity(
     '''
     def __init__(
             self, corr, spatial_method='burg',
-            burg_params=rd.spectra2d.default_burg_params,
+            burg_params={'p': 5, 'Nk': 1000},
             fourier_params=rd.spectra2d.default_fourier_params):
         '''Create instance of `TwoDimensionalAutoSpectralDensity` class.
 
@@ -104,11 +104,11 @@ class TwoDimensionalAutoSpectralDensity(
         burg_params - dict
             A dictionary containing the parameters of relevance
             for Burg spectral estimation. Valid dictionary keys
-            are: {'p', 'Nxi'} where
+            are: {'p', 'Nk'} where
 
             - p: int, order of Burg AR spectral-density estimate,
-            - Nxi: int, number of points in the two-sided *spatial*
-                spectral-density estimate at each frequency.
+            - Nk: int, the number of points in the wavenumber grid;
+                note that the spatial estimate is *two-sided*.
 
             See documentation for :py:class:`BurgAutoSpectralDensity
             <random_data.spectra.parametric.BurgAutoSpectralDensity>`
@@ -132,9 +132,12 @@ class TwoDimensionalAutoSpectralDensity(
         '''
         self.shot = corr.shot
 
+        if str.lower(spatial_method) == 'burg':
+            burg_params['Nxi'] = burg_params['Nk']
+
         # Compute spectrum
         rd.spectra2d.TwoDimensionalAutoSpectralDensity.__init__(
-            self, corr, spatial_method='burg',
+            self, corr, spatial_method=spatial_method,
             burg_params=burg_params,
             fourier_params=fourier_params)
 

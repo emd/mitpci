@@ -433,3 +433,36 @@ such investigations are relegated to future work).
 If the interpolation produces undesired results,
 the previous correlation function can be restored via
 `corr.unInterpolate()`.
+
+
+PCI two-dimensional autospectral density estimate:
+--------------------------------------------------
+The two-dimensional autospectral density can be estimated
+from the complex correlation function as follows
+(proceed with the correlation function from above
+after having linearly interpolated across all gaps
+that are less than or equal to 2 detector-element spacings):
+
+```python
+# Compute 2d autospectral density. Temporal estimates are
+# via Welch's method of overlapped periodograms, while
+# spatial estimates are via a Burg autoregressive method
+# with `p` poles and `Nk` points.
+asd2d = mitpci.pci.TwoDimensionalAutoSpectralDensity(
+    corr, spatial_method='burg', burg_params={'p': 5, 'Nk': 1000})
+
+flim = [10, 1500]  # [flim] = kHz
+asd2d.plotSpectralDensity(flim=flim)
+
+```
+
+![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/Skf/figs/pci_2d_spectrum.png)
+
+Spatial resolution typically increases with higher `p`, but
+higher `p` can produce "pole splitting" and can introduce
+numerical artifacts. Spatial estimates can also be made
+via a Fourier method (`spatial_method = 'fourier'` along
+with its own associated `fourier_params`), but
+the limited number of spatial samples typically
+results in the Fourier estimates performing
+much more poorly than the Burg estimates.
