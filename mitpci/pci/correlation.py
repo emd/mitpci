@@ -33,6 +33,10 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
         [separation] = [Ph_pci.detector_elements], where `Ph_pci`
             is provided at initialization
 
+    equalize - bool
+        If True, the powers in the signals provided at initialization
+        were equalized prior to performing any spectral calculations.
+
     The additional attributes:
 
         {`detrend`, `df`, `dt`, `f`, `Fs`, `Npts_overlap`,
@@ -47,7 +51,7 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
     for a listing.
 
     '''
-    def __init__(self, Ph_pci, tlim=None,
+    def __init__(self, Ph_pci, tlim=None, equalize=True,
                  print_status=True, **csd_kwargs):
         '''Create an instance of the `ComplexCorrelationFunction` class.
 
@@ -59,6 +63,12 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
             If not None, then only use the portion of `Ph_pci`
             that sits between `min(tlim)` and `max(tlim)`.
             [tlim] = s
+
+        equalize - bool
+            If True, scale the power from each detector channel
+            to be equal to that of of the channel with the most power.
+            Note that this may e.g. increase the effective bit noise
+            in channels with initially low power.
 
         print_status - bool
             If True, print status of computations.
@@ -90,4 +100,5 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
 
         rd.array.SpatialCrossCorrelation.__init__(
             self, Ph_pci.x, Ph_pci.detector_elements,
-            tlim=tlim, print_status=print_status, **csd_kwargs)
+            tlim=tlim, equalize=equalize,
+            print_status=print_status, **csd_kwargs)
