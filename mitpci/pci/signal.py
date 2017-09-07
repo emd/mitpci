@@ -52,6 +52,10 @@ class Phase(Signal):
         digitizer channel `self.digitizer_channels[i]`.
         [digitizer_channels] = unitless
 
+    digitizer_board - list, (`M`,)
+        The digitizer board for each channel in `digitizer_channels`.
+        [digitizer_board] = unitless
+
     detector_elements - array_like, (`M`,)
         The detector elements corresponding to `self.x`. That is,
         `self.x[i, :]` corresponds to the signal measured from
@@ -140,7 +144,10 @@ class Phase(Signal):
         shot = self.detector_stencil.shot
         ch = self.digitizer_channels[0]
         Signal.__init__(self, shot, ch, **signal_kwargs)
-        del self.channel  # useless & confusing for this derived class
+        self.digitizer_board = self._digitizer_board
+
+        # Delete useless & confusing attributes for this derived class
+        del self.channel, self._digitizer_board, self._node_name
 
         Nchannels = len(self.digitizer_channels)
 
@@ -153,6 +160,10 @@ class Phase(Signal):
             self.x = np.zeros((Nchannels, Ntimes), dtype=xdtype)
             self.x[0, :] = xtmp
 
+            # Additionally, create a list to store digitizer board
+            # of each channel
+            self.digitizer_board = [self.digitizer_board]
+
             # Loop through remaining channels
             for channel_index in (np.arange(Nchannels - 1) + 1):
                 if not quiet:
@@ -161,6 +172,7 @@ class Phase(Signal):
                 ch = self.digitizer_channels[channel_index]
                 sig = Signal(shot, ch, **signal_kwargs)
                 self.x[channel_index, :] = sig.x
+                self.digitizer_board.append(sig._digitizer_board)
 
         return
 
