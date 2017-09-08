@@ -38,7 +38,8 @@ class DetectorArray(ArrayStencil):
         the detector elements that correspond to `self.digitizer_channels`.
 
     '''
-    def __init__(self, shot, digitizer_channels):
+    def __init__(self, shot, digitizer_channels,
+                 include_autocorrelations=True):
         '''Create instance of the PCI `DetectorArray` class.
 
         Input parameters:
@@ -55,6 +56,9 @@ class DetectorArray(ArrayStencil):
             heterodyne interferometer) are automatically removed. A
             ValueError is raised if non-existent digitizer channels are
             specified.
+
+        include_autocorrelations - bool
+            If True, include autocorrelations as unique correlation pairs.
 
         '''
         self.shot = shot
@@ -75,7 +79,7 @@ class DetectorArray(ArrayStencil):
         ArrayStencil.__init__(
             self,
             detector_elements,
-            include_autocorrelations=True)
+            include_autocorrelations=include_autocorrelations)
 
     def getDigitizerToDetectorMapping(self, digitizer_channels):
         'Get mapping of digitizer channels to PCI detector elements.'
