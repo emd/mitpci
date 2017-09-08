@@ -51,11 +51,31 @@ class TriggerOffset(object):
             Ph_pci.detector_elements, Ph_pci.digizer_board,
             d1='DT216_7', d2='DT216_8')
 
-        topology = res[0]
-        ind_d1_min = res[1]
-        ind_d1_max = res[2]
-        ind_d2_min = res[3]
-        ind_d2_max = res[4]
+        self.ind_b7_min = res[1]
+        self.ind_b7_max = res[2]
+        self.ind_b8_min = res[3]
+        self.ind_b8_max = res[4]
+
+        # Typically, detector-element number increases as
+        # we move across board 7 to board 8. This motivates
+        # the definition of a "topological direction" in
+        # which the "positive" direction implies the typical
+        # convention of detector-element number increasing
+        # as we move across board 7 to board 8.
+        b7_max = Ph_pci.detector_elements[self.ind_b7_max]
+        b8_min = Ph_pci.detector_elements[self.ind_b8_min]
+        self.topological_direction = b8_min - b7_max
+
+    def _getOffset(self, Ph_pci):
+        'Get trigger offset of board 8 relative to board 7'
+        Tens = Ph_pci.t()[-1] - Ph_pci.t0
+
+        csd_b7 = rd.spectra.CrossSpectralDensity(
+            Ph_pci.x[self.ind_b7_min, :], Ph_pci.x[self.ind_b7_max, :],
+            Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+            Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+
+        return
 
 
 def _check_topology(elements, domains, d1='1', d2='2'):
