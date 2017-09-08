@@ -40,81 +40,22 @@ class TriggerOffset(object):
 
 
         '''
-        self.shot = Ph_pci.shot
-
-        res = self._checkSignals(Ph_pci)
-        self.ind_b7_min = res[0]
-        self.ind_b7_max = res[1]
-        self.ind_b8_min = res[2]
-        self.ind_b8_max = res[3]
-        self.topology = res[4]
-
-    def _checkSignals(self, Ph_pci):
         # Ensure we are working with correct object
         if type(Ph_pci) is not Phase:
             raise ValueError('`Ph_pci` must be of type %s' % Phase)
 
-        digitizer_board = Ph_pci.digitizer_board.copy()
-        detector_elements = Ph_pci.detector_elements.copy()
+        self.shot = Ph_pci.shot
 
-        board7 = 'DT216_7'
-        board8 = 'DT216_8'
+        # Check topology and parse results
+        res = _check_topology(
+            Ph_pci.detector_elements, Ph_pci.digizer_board,
+            d1='DT216_7', d2='DT216_8')
 
-        # Ensure we are working with correct number of signals
-        # from both digitizer boards
-        if np.sum(digitizer_board == board7) != 2:
-            raise ValueError(
-                'Specify exactly 2 channels from board %s' % board7)
-        if np.sum(digitizer_board == board8) != 2:
-            raise ValueError(
-                'Specify exactly 2 channels from board %s' % board8)
-
-        # Get indices corresponding to board 7 and 8
-        ind_b7 = np.where(digitizer_board == board7)[0]
-        ind_b8 = np.where(digitizer_board == board8)[0]
-
-        # Determine the minimum and maximum detector elements
-        # that are mapped onto each board
-        b7_min = np.min(detector_elements[ind_b7])
-        b7_max = np.max(detector_elements[ind_b7])
-        b8_min = np.min(detector_elements[ind_b8])
-        b8_max = np.max(detector_elements[ind_b8])
-
-        # Get indices corresponding to minimum and maximum
-        # detector elements that are mapped onto each board
-        ind_b7_min = np.where(detector_elements == b7_min)[0]
-        ind_b7_max = np.where(detector_elements == b7_max)[0]
-        ind_b8_min = np.where(detector_elements == b8_min)[0]
-        ind_b8_max = np.where(detector_elements == b8_max)[0]
-
-        # Determine topology
-        if b7_max < b8_min:
-            # increasing element number: --->
-            # element-to-board mapping: 7|7|8|8
-            topology = '7|7|8|8'
-            spacing = np.array([
-                b7_max - b7_min,
-                b8_min - b7_max,
-                b8_max - b8_min])
-        elif b8_max < b7_min:
-            # increasing element number: --->
-            # element-to-board mapping: 8|8|7|7
-            topology = '8|8|7|7'
-            spacing = np.array([
-                b8_max - b8_min,
-                b7_min - b8_max,
-                b7_max - b7_min])
-        else:
-            # increasing element number: --->       --->
-            # element-to-board mapping: 7|8|7|8 or 8|7|8|7
-            # Technique does not work for this topology.
-            raise ValueError('Channels not simply connected to boards')
-
-        # Correlation pairs need to be uniformly spaced
-        if len(np.unique(spacing)) != 1:
-            raise ValueError('Correlation pairs not uniformly spaced')
-
-        return ind_b7_min, ind_b7_max, ind_b8_min, ind_b8_max, topology
+        topology = res[0]
+        ind_d1_min = res[1]
+        ind_d1_max = res[2]
+        ind_d2_min = res[3]
+        ind_d2_max = res[4]
 
 
 def _check_topology(elements, domains, d1='1', d2='2'):
