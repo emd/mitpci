@@ -66,71 +66,72 @@ def test__check_topology():
 
     # Tests for correct return values:
     # --------------------------------
-
-    # Test 1: baseline
     elements = np.arange(4)
     domains = np.array([d1, d1, d2, d2])
 
-    res = mitpci.boards._check_topology(elements, domains, d1=d1, d2=d2)
-    topology = res[0]
+    # Test 1: baseline
+    res = mitpci.boards._check_topology(
+        elements, domains, d1=d1, d2=d2)
+
+    topological_direction = res[0]
     ind_d1_min = res[1]
     ind_d1_max = res[2]
     ind_d2_min = res[3]
     ind_d2_max = res[4]
 
-    tools.assert_equal(topology, '%s | %s | %s | %s' % (d1, d1, d2, d2))
+    tools.assert_equal(topological_direction, 1)
     tools.assert_equal(ind_d1_min, 0)
     tools.assert_equal(ind_d1_max, 1)
     tools.assert_equal(ind_d2_min, 2)
     tools.assert_equal(ind_d2_max, 3)
 
-    # Test 2: reverse `domains` relative to 1
-    domains = domains[::-1]
+    # Test 2: reverse `elements` relative to baseline
+    res = mitpci.boards._check_topology(
+        elements[::-1], domains, d1=d1, d2=d2)
 
-    res = mitpci.boards._check_topology(elements, domains, d1=d1, d2=d2)
-    topology = res[0]
+    topological_direction = res[0]
     ind_d1_min = res[1]
     ind_d1_max = res[2]
     ind_d2_min = res[3]
     ind_d2_max = res[4]
 
-    tools.assert_equal(topology, '%s | %s | %s | %s' % (d2, d2, d1, d1))
+    tools.assert_equal(topological_direction, -1)
+    tools.assert_equal(ind_d1_min, 1)
+    tools.assert_equal(ind_d1_max, 0)
+    tools.assert_equal(ind_d2_min, 3)
+    tools.assert_equal(ind_d2_max, 2)
+
+    # Test 3: reverse `domains` relative to baseline
+    res = mitpci.boards._check_topology(
+        elements, domains[::-1], d1=d1, d2=d2)
+
+    topological_direction = res[0]
+    ind_d1_min = res[1]
+    ind_d1_max = res[2]
+    ind_d2_min = res[3]
+    ind_d2_max = res[4]
+
+    tools.assert_equal(topological_direction, -1)
     tools.assert_equal(ind_d1_min, 2)
     tools.assert_equal(ind_d1_max, 3)
     tools.assert_equal(ind_d2_min, 0)
     tools.assert_equal(ind_d2_max, 1)
 
-    # Test 3: reverse `elements` relative to 1; keep `domains` as in 2
-    elements = elements[::-1]
+    # Test 4: reverse `elements` and `domains` relative to baseline
+    res = mitpci.boards._check_topology(
+        elements[::-1], domains[::-1], d1=d1, d2=d2)
 
-    res = mitpci.boards._check_topology(elements, domains, d1=d1, d2=d2)
-    topology = res[0]
+    topological_direction = res[0]
     ind_d1_min = res[1]
     ind_d1_max = res[2]
     ind_d2_min = res[3]
     ind_d2_max = res[4]
 
-    tools.assert_equal(topology, '%s | %s | %s | %s' % (d1, d1, d2, d2))
+    tools.assert_equal(topological_direction, 1)
     tools.assert_equal(ind_d1_min, 3)
     tools.assert_equal(ind_d1_max, 2)
     tools.assert_equal(ind_d2_min, 1)
     tools.assert_equal(ind_d2_max, 0)
-
-    # Test 4: revert `domains` to that of 1; keep `elements` as in 3
-    domains = domains[::-1]
-
-    res = mitpci.boards._check_topology(elements, domains, d1=d1, d2=d2)
-    topology = res[0]
-    ind_d1_min = res[1]
-    ind_d1_max = res[2]
-    ind_d2_min = res[3]
-    ind_d2_max = res[4]
-
-    tools.assert_equal(topology, '%s | %s | %s | %s' % (d2, d2, d1, d1))
-    tools.assert_equal(ind_d1_min, 1)
-    tools.assert_equal(ind_d1_max, 0)
-    tools.assert_equal(ind_d2_min, 3)
-    tools.assert_equal(ind_d2_max, 2)
 
     return
 

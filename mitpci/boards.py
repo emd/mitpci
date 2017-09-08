@@ -17,7 +17,7 @@ from .pci.signal import Phase
 class TriggerOffset(object):
     '''
     '''
-    def __init__(self, Ph_pci):
+    def __init__(self, Ph_pci, Nreal_per_ens=100):
         '''
 
         For example, as of 9/7/17, the PCI's digitizer to detector
@@ -45,35 +45,68 @@ class TriggerOffset(object):
             raise ValueError('`Ph_pci` must be of type %s' % Phase)
 
         self.shot = Ph_pci.shot
+        self.Nreal_per_ens = Nreal_per_ens
 
         # Check topology and parse results
         res = _check_topology(
             Ph_pci.detector_elements, Ph_pci.digizer_board,
             d1='DT216_7', d2='DT216_8')
 
+        self.topological_direction = res[0]
         self.ind_b7_min = res[1]
         self.ind_b7_max = res[2]
         self.ind_b8_min = res[3]
         self.ind_b8_max = res[4]
 
-        # Typically, detector-element number increases as
-        # we move across board 7 to board 8. This motivates
-        # the definition of a "topological direction" in
-        # which the "positive" direction implies the typical
-        # convention of detector-element number increasing
-        # as we move across board 7 to board 8.
-        b7_max = Ph_pci.detector_elements[self.ind_b7_max]
-        b8_min = Ph_pci.detector_elements[self.ind_b8_min]
-        self.topological_direction = b8_min - b7_max
-
     def _getOffset(self, Ph_pci):
         'Get trigger offset of board 8 relative to board 7'
         Tens = Ph_pci.t()[-1] - Ph_pci.t0
 
-        csd_b7 = rd.spectra.CrossSpectralDensity(
-            Ph_pci.x[self.ind_b7_min, :], Ph_pci.x[self.ind_b7_max, :],
-            Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-            Tens=Tens, Nreal_per_ens=Nreal_per_ens)
+        # Compute cross-spectral densities with ordering
+        # as determined by `self.topological_direction`, where
+        #
+        # - csd_b7 = cross-spectral density from board 7 only
+        # - csd_b78 = cross-spectral density from board 7 & 8, and
+        # - csd_b8 = cross-spectral density from board 8 only.
+        #
+        if self.topological_direction > 0:
+            csd_b7 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b7_min, :],
+                Ph_pci.x[self.ind_b7_max, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+            csd_b78 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b7_max, :],
+                Ph_pci.x[self.ind_b8_min, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+            csd_b8 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b8_min, :],
+                Ph_pci.x[self.ind_b8_max, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+        else:
+            csd_b7 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b7_max, :],
+                Ph_pci.x[self.ind_b7_min, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+            csd_b78 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b7_min, :],
+                Ph_pci.x[self.ind_b8_max, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+            csd_b8 = rd.spectra.CrossSpectralDensity(
+                Ph_pci.x[self.ind_b8_max, :],
+                Ph_pci.x[self.ind_b8_min, :],
+                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
+                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+
+        # - explanation for offset
+        # - weighting by:
+        #     - coherence: threshold
+        #     - normalized difference: threshold
+        # - plotting
 
         return
 
@@ -111,31 +144,27 @@ def _check_topology(elements, domains, d1='1', d2='2'):
 
     Returns:
     --------
-    (topology, ind_d1_min, ind_d1_max, ind_d2_min, ind_d2_max) - tuple, where
+    res - tuple, where
 
-    topology - string
-        The topology of the element-to-domain mapping. As only simply
-        connected topologies are supported, the string will either be
+    res[0] = topological_direction - int
+        Values may be +/-1, with a positive value indicating that
+        `elements` increases when moving from domain `d1` to `d2`
+        (and a negative value indicating that `elements` decreases
+        when moving from domain `d1` to `d2`).
 
-                        `d1` | `d1` | `d2` | `d2`
-
-                                    or
-
-                        `d2` | `d2` | `d1` | `d1`
-
-    ind_d1_min - int
+    res[1] = ind_d1_min - int
         `elements[ind_d1_min]` gives the minimum value of `elements`
         that is mapped onto domain `d1`.
 
-    ind_d1_max - int
+    res[2] = ind_d1_max - int
         `elements[ind_d1_max]` gives the maximum value of `elements`
         that is mapped onto domain `d1`.
 
-    ind_d2_min - int
+    res[3] = ind_d2_min - int
         `elements[ind_d2_min]` gives the minimum value of `elements`
         that is mapped onto domain `d2`.
 
-    ind_d2_max - int
+    res[4] = ind_d2_max - int
         `elements[ind_d2_max]` gives the maximum value of `elements`
         that is mapped onto domain `d2`.
 
@@ -160,27 +189,43 @@ def _check_topology(elements, domains, d1='1', d2='2'):
     d2_min = np.min(elements[ind_d2])
     d2_max = np.max(elements[ind_d2])
 
-    # Determine topology
-    if d1_max < d2_min:
-        # increasing element number:  --------->
-        # element-to-domain mapping: 1 | 1 | 2| 2
-        topology = '%s | %s | %s | % s' % (d1, d1, d2, d2)
+    # Check topology. We want simply connected domains; for example
+    #
+    #       elements:   0 | 1 | 2 | 3
+    #       --------------------------
+    #       domains:      1   |   2
+    #
+    # or
+    #
+    #       elements:   3 | 2 | 1 | 0
+    #       --------------------------
+    #       domains:      1   |   2
+    #
+    # However, non-simply connected domains, for example, looks like
+    #
+    #       elements:   0 | 1 | 2 | 3
+    #       --------------------------
+    #       domains:    1 | 2 | 1 | 2
+    #
+    # from which the following "if-then" logic readily follows.
+    if (d1_max > d2_min) and (d2_max > d1_min):
+        raise ValueError('`elements` not simply connected to `domains`')
+
+    # Define a `topological direction` such that a positive value
+    # corresponds to `elements` increasing as we move from domain
+    # `d1` to domain `d2`
+    topological_direction = np.sign(d2_min - d1_max)
+
+    if topological_direction > 0:
         spacing = np.array([
             d1_max - d1_min,
             d2_min - d1_max,
             d2_max - d2_min])
-    elif d2_max < d1_min:
-        # increasing element number:  --------->
-        # element-to-domain mapping: 2| 2 | 1 | 1
-        topology = '%s | %s | %s | % s' % (d2, d2, d1, d1)
-        spacing = np.array([
-            d2_max - d2_min,
-            d1_min - d2_max,
-            d1_max - d1_min])
     else:
-        # increasing element number:  ---------->      --------->
-        # element-to-domain mapping: 1 | 2 | 1 | 2 or 2 | 1 | 2| 1
-        raise ValueError('`elements` not simply connected to `domains`')
+        spacing = np.array([
+            d1_max - d1_min,
+            d1_min - d2_max,
+            d2_max - d2_min])
 
     # Ensure that `spacing` is uniform
     if len(np.unique(spacing)) != 1:
@@ -193,4 +238,6 @@ def _check_topology(elements, domains, d1='1', d2='2'):
     ind_d2_min = np.where(elements == d2_min)[0][0]
     ind_d2_max = np.where(elements == d2_max)[0][0]
 
-    return topology, ind_d1_min, ind_d1_max, ind_d2_min, ind_d2_max
+    return (topological_direction,
+            ind_d1_min, ind_d1_max,
+            ind_d2_min, ind_d2_max)
