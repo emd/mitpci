@@ -26,7 +26,9 @@ the heterodyne interferometer, including:
 
 There are also several specialized analysis routines for the PCI, including:
 
-* estimation of the complex-valued, spatial cross-correlation function and
+* estimation and compensation of the trigger offset between
+  the two boards of the digitizer,
+* estimation of the complex-valued, spatial cross-correlation function, and
 * estimation of the corresponding two-dimensional autospectral density
   with Burg autoregression and Fourier spatial methods.
 
@@ -367,6 +369,54 @@ from a recent PCI-interferometer audio cross-calibration
 is applied to the PCI signal.
 
 
+Estimation and compensation of trigger offset between digitizer boards:
+-----------------------------------------------------------------------
+Although both digitizer boards share the same *nominal* timebase,
+the boards often physically trigger at slightly different times;
+this time difference is termed the "trigger offset".
+The trigger offset is typically a few tenths of a microsecond, and
+it varies on a shot-to-shot basis.
+Because it can produce large systematic errors in spectral estimates,
+it is desirable to estimate and compensate for the trigger offset.
+
+The trigger offset can be readily estimated by analyzing
+stationary signals from four *equally spaced* detector elements
+that *straddle* the board boundary (e.g. the two lowest elements map
+to board 7 and the two highest elements map to board 8;
+currently, specifying `digitizer_channels = [7, 8, 9, 12]`
+meets these criterion).
+Usually, an L-mode portion of the discharge
+is optimal for estimating the trigger offset,
+as the fluctuations are large and there are no ELMs.
+For example,
+
+```python
+shot = 171521
+tlim_Lmode = [1.05, 1.10]  # [tlim_Lmode] = s, stationary L-mode window
+digitizer_channels = [7, 8, 9, 12]
+
+# Load data
+Ph_pci_Lmode = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim_Lmode)
+
+# Compute trigger offset
+trig = mitpci.boards.TriggerOffset(Ph_pci_Lmode)
+print '\ntrigger offset = %.2f us' % (trig.tau * 1e6)
+
+# Load PCI data from *all* channels for a larger time window, and
+# compensate for trigger offset
+tlim = [1.0, 1.5]  # [tlim] = s
+digitizer_channels = np.arange(16) + 1
+Ph_pci = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim, tau=trig.tau)
+
+```
+
+Note that a warning message is printed to the screen
+when the `tau` keyword argument is not specified,
+as was the case when loading the L-mode data above.
+Spectral estimates involving signals from both boards
+should only be attempted *after* compensating for the trigger offset.
+
+
 PCI complex-valued, spatial cross-correlation function:
 -------------------------------------------------------
 Typically, the digitized PCI signal corresponds to measurements
@@ -378,7 +428,8 @@ Fortunately, the correlation function
 can still be estimated from nonuniformly spaced samples.
 For example, the PCI complex-valued, spatial cross-correlation function
 can be easily estimated and visualized as follows
-(using the `Ph_pci` instance from above):
+(using the `Ph_pci` instance from above,
+after compensation of the trigger offset):
 
 ```python
 import matplotlib.pyplot as plt
@@ -393,7 +444,8 @@ Nreal_per_ens = 500  # number of realizations in the ensemble
 corr = mitpci.pci.ComplexCorrelationFunction(
     Ph_pci, tlim=tlim, Nreal_per_ens=Nreal_per_ens)
 
-corr.plotNormalizedCorrelationFunction()
+flim = [0, 1200]  # [flim] = kHz
+corr.plotNormalizedCorrelationFunction(flim=flim)
 plt.show()
 
 ```
@@ -451,8 +503,9 @@ that are less than or equal to 2 detector-element spacings):
 asd2d = mitpci.pci.TwoDimensionalAutoSpectralDensity(
     corr, spatial_method='burg', burg_params={'p': 5, 'Nk': 1000})
 
-flim = [10, 1500]  # [flim] = kHz
+flim = [10, 1200]  # [flim] = kHz
 asd2d.plotSpectralDensity(flim=flim)
+plt.show()
 
 ```
 
