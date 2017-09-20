@@ -450,7 +450,7 @@ plt.show()
 
 ```
 
-![pci_correlation_function](https://raw.githubusercontent.com/emd/mitpci/offset/figs/pci_correlation_function.png)
+![pci_correlation_function](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_correlation_function.png)
 
 Note that this is a plot of the *normalized* complex-valued, spatial
 cross-correlation function. That is, at each frequency `f`,
@@ -509,7 +509,7 @@ plt.show()
 
 ```
 
-![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/offset/figs/pci_2d_spectrum.png)
+![pci_2d_spectrum](https://raw.githubusercontent.com/emd/mitpci/master/figs/pci_2d_spectrum.png)
 
 Spatial resolution typically increases with higher `p`, but
 higher `p` can produce "pole splitting" and can introduce
