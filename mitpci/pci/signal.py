@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 # Related 3rd-party imports
 import filters
+from random_data.signals.sampling import circular_resample
 
 # Intra-package imports
 from ..signal import Signal
@@ -74,8 +75,8 @@ class Phase(Signal):
         of the `Phase` class.
 
     '''
-    def __init__(self, shot, digitizer_channels, filt=_hpf,
-                 quiet=False, **signal_kwargs):
+    def __init__(self, shot, digitizer_channels, tau=None,
+                 filt=_hpf, quiet=False, **signal_kwargs):
         '''Create an instance of the `Phase` class.
 
         Input parameters:
@@ -92,6 +93,24 @@ class Phase(Signal):
             heterodyne interferometer) are automatically removed. A
             ValueError is raised if non-existent digitizer channels are
             specified.
+
+        tau - float or None
+            The trigger offset between boards 7 and 8. If the board-7
+            measurements correspond to a true, physical time `t`, then
+            the board-8 measurements correspond to a true, physical
+            time `t + tau`. (Note that `tau` is *signed* such that a
+            negative value of `tau` indicates that the true, physical
+            time corresponding to the board-8 measurements actually
+            precedes that of the board 7 measurements).
+
+            If `tau` is not `None`, then the trigger offset will be
+            compensated. If `tau` is `None` and data from both boards
+            are loaded, a cautionary note is printed to the screen.
+
+            The trigger offset can be easily estimated using
+            py:class:`TriggerOffset <random_data.signals.TriggerOffset>`.
+
+            [tau] = s
 
         filt - :py:class:`Kaiser <filters.fir.Kaiser>` instance or None
             The filter applied to the phase signal. If `None`,
@@ -118,10 +137,13 @@ class Phase(Signal):
         if type(digitizer_channels) is int:
             digitizer_channels = np.array([digitizer_channels])
 
+        self.tau = tau
+
         # Create stencil from specified digitizer channels
         self.detector_stencil = DetectorArray(shot, digitizer_channels)
 
-        # Load raw signal
+        # Load raw signal, compensating for the trigger offset
+        # between board 7 and board 8 if needed
         self._getRawSignal(quiet=quiet, **signal_kwargs)
 
         # Filter signal, if requested
@@ -134,6 +156,15 @@ class Phase(Signal):
         # with swept-frequency sound waves
         rad_per_bit = 1. / 7.7e5
         self.x = self.x * rad_per_bit
+
+        Nboards = len(set(self.digitizer_board))
+
+        # If trigger offset is *not* compensated but signals from
+        # both boards have been loaded, warn the user
+        if (self.tau is None) and (Nboards > 1):
+            print '\nWARNING: Trigger offset between boards NOT compensated,'
+            print 'which may result in significant systematic errors.'
+            print 'Offset estimation & specification discussed in docs.'
 
     def _getRawSignal(self, quiet=False, **signal_kwargs):
         'Get raw signal from `self.digitizer_channels`.'
@@ -175,6 +206,18 @@ class Phase(Signal):
         # Convert to array for compatibility with other arrays,
         # such as `self.digitizer_channels` and `self.detector_elements`
         self.digitizer_board = np.array(self.digitizer_board)
+        Nboards = len(set(self.digitizer_board))
+
+        # If needed, compensate for trigger offset
+        if (self.tau is not None) and (Nboards > 1):
+            print '\n'
+            for chind in np.where(self.digitizer_board == 'DT216_8')[0]:
+                self._printOffsetCompensationMessage(chind)
+                self.x[chind, :] = circular_resample(
+                    self.x[chind, :],
+                    self.Fs,
+                    -self.tau,
+                    pad_to_next_fast_len=True)
 
         return
 
@@ -189,6 +232,15 @@ class Phase(Signal):
             prepend = ''
 
         print '%sRetrieving PCI ch. %i for %i' % (prepend, ch, shot)
+
+        return
+
+    def _printOffsetCompensationMessage(self, channel_index):
+        'Print channel number when compensating for trigger offset.'
+        ch = self.digitizer_channels[channel_index]
+        tau = self.tau * 1e6
+
+        print 'Compensating PCI ch. %i for %.2f us offset' % (ch, tau)
 
         return
 

@@ -110,7 +110,7 @@ class ComplexCorrelationFunction(rd.array.SpatialCrossCorrelation):
     def plotNormalizedCorrelationFunction(
             self, xlim=None, flim=None, vlim=[-1, 1],
             units='lab',
-            cmap='viridis', interpolation='none', fontsize=16,
+            cmap='RdBu', interpolation='none', fontsize=16,
             xlabel=None, ylabel=None, no_nan=False):
         'Plot normalized correlation function, Gxy(delta, f) / Gxy(0, f).'
         # Determine y-axis units
