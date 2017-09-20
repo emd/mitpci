@@ -210,7 +210,7 @@ class Phase(Signal):
 
         # If needed, compensate for trigger offset
         if (self.tau is not None) and (Nboards > 1):
-            print '\n'
+            print ''
             for chind in np.where(self.digitizer_board == 'DT216_8')[0]:
                 self._printOffsetCompensationMessage(chind)
                 self.x[chind, :] = circular_resample(
