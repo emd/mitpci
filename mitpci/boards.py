@@ -14,10 +14,10 @@ import random_data as rd
 from .pci.signal import Phase
 
 
-class TriggerOffset(object):
+class TriggerOffset(rd.signals.TriggerOffset):
     '''
     '''
-    def __init__(self, Ph_pci, Nreal_per_ens=100):
+    def __init__(self, Ph_pci, **trig_kwargs):
         '''
 
         For example, as of 9/7/17, the PCI's digitizer to detector
@@ -30,7 +30,7 @@ class TriggerOffset(object):
                    9 (board 8)                  17
                   12 (board 8)                  18
 
-        such that the detector
+        such that
 
                correlation pairs     <-->  element separation
             -----------------------        ------------------
@@ -45,70 +45,61 @@ class TriggerOffset(object):
             raise ValueError('`Ph_pci` must be of type %s' % Phase)
 
         self.shot = Ph_pci.shot
-        self.Nreal_per_ens = Nreal_per_ens
+        trig_kwargs['Fs'] = Ph_pci.Fs
+
+        # The PCI signal is 10-kHz high-pass filtered in hardware and
+        # is often plagued by strong coherent pickup above 1 MHz, so
+        # including data from either of these bands can bias the offset
+        # computation. Further, the channel-to-channel coherence during
+        # L-mode (where the offset is often estimated, as the plasma
+        # is relatively quiescent) often reaches its floor at ~500 kHz.
+        # If no frequency band `flim` is specified for the computation,
+        # enforce a default band of 10 kHz to 500 kHz.
+        try:
+            trig_kwargs['flim']
+        except KeyError:
+            trig_kwargs['flim'] = [10e3, 500e3]
 
         # Check topology and parse results
         res = _check_topology(
-            Ph_pci.detector_elements, Ph_pci.digizer_board,
+            Ph_pci.detector_elements, Ph_pci.digitizer_board,
             d1='DT216_7', d2='DT216_8')
 
-        self.topological_direction = res[0]
-        self.ind_b7_min = res[1]
-        self.ind_b7_max = res[2]
-        self.ind_b8_min = res[3]
-        self.ind_b8_max = res[4]
+        topological_direction = res[0]
+        ind_b7_min = res[1]
+        ind_b7_max = res[2]
+        ind_b8_min = res[3]
+        ind_b8_max = res[4]
 
-    def _getOffset(self, Ph_pci):
-        'Get trigger offset of board 8 relative to board 7'
-        Tens = Ph_pci.t()[-1] - Ph_pci.t0
-
-        # Compute cross-spectral densities with ordering
-        # as determined by `self.topological_direction`, where
-        #
-        # - csd_b7 = cross-spectral density from board 7 only
-        # - csd_b78 = cross-spectral density from board 7 & 8, and
-        # - csd_b8 = cross-spectral density from board 8 only.
-        #
-        if self.topological_direction > 0:
-            csd_b7 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b7_min, :],
-                Ph_pci.x[self.ind_b7_max, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
-            csd_b78 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b7_max, :],
-                Ph_pci.x[self.ind_b8_min, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
-            csd_b8 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b8_min, :],
-                Ph_pci.x[self.ind_b8_max, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+        # Sort signals in `Ph_pci.x` such that moving from one signal
+        # to the next corresponds to a *monotonic* progression across
+        # the PCI detector array.
+        if topological_direction > 0:
+            # Board-7 elements are less than board-8 elements, and
+            # ramping `i` in `x[i, :]` corresponds to progressing
+            # from low element number to high element number.
+            x = np.array([
+                Ph_pci.x[ind_b7_min, :],
+                Ph_pci.x[ind_b7_max, :],
+                Ph_pci.x[ind_b8_min, :],
+                Ph_pci.x[ind_b8_max, :]
+            ])
+        elif topological_direction < 0:
+            # Board-7 elements are greater than board-8 elements, and
+            # ramping `i` in `x[i, :]` corresponds to progressing
+            # from high element number to low element number.
+            x = np.array([
+                Ph_pci.x[ind_b7_max, :],
+                Ph_pci.x[ind_b7_min, :],
+                Ph_pci.x[ind_b8_max, :],
+                Ph_pci.x[ind_b8_min, :]
+            ])
         else:
-            csd_b7 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b7_max, :],
-                Ph_pci.x[self.ind_b7_min, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
-            csd_b78 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b7_min, :],
-                Ph_pci.x[self.ind_b8_max, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
-            csd_b8 = rd.spectra.CrossSpectralDensity(
-                Ph_pci.x[self.ind_b8_max, :],
-                Ph_pci.x[self.ind_b8_min, :],
-                Fs=Ph_pci.Fs, t0=Ph_pci.t0,
-                Tens=Tens, Nreal_per_ens=self.Nreal_per_ens)
+            raise ValueError('`topological_direction` may not be zero')
 
-        # - explanation for offset
-        # - weighting by:
-        #     - coherence: threshold
-        #     - normalized difference: threshold
-        # - plotting
-
-        return
+        # Compute offset
+        rd.signals.TriggerOffset.__init__(
+            self, Ph_pci.x, **trig_kwargs)
 
 
 def _check_topology(elements, domains, d1='1', d2='2'):

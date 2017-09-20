@@ -134,34 +134,3 @@ def test__check_topology():
     tools.assert_equal(ind_d2_max, 0)
 
     return
-
-
-# def test__checkChannels():
-#     shot = 171521
-#     tlim = [1.00, 1.05]  # [tlim] = s
-# 
-#     # Pass incorrect argument type to `TriggerOffset`
-#     digitizer_channels = [7, 8, 9, 12]
-#     Ph_pci = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim)
-#     tools.assert_raises(
-#         ValueError,
-#         mitpci.boards.TriggerOffset,
-#         *[Ph_pci.x])
-# 
-#     # Too many channels from board 7
-#     digitizer_channels = [6, 7, 8, 9, 12]
-#     Ph_pci = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim)
-#     tools.assert_raises(
-#         ValueError,
-#         mitpci.boards.TriggerOffset,
-#         *[Ph_pci])
-# 
-#     # Too many channels from board 8
-#     digitizer_channels = [7, 8, 9, 12, 13]
-#     Ph_pci = mitpci.pci.Phase(shot, digitizer_channels, tlim=tlim)
-#     tools.assert_raises(
-#         ValueError,
-#         mitpci.boards.TriggerOffset,
-#         *[Ph_pci])
-# 
-#     return
