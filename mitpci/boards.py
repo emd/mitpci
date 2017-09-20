@@ -15,13 +15,58 @@ from .pci.signal import Phase
 
 
 class TriggerOffset(rd.signals.TriggerOffset):
-    '''
+    '''A class for estimating the trigger offset between the two boards
+    of the mitpci digitizer.
+
+    Attributes:
+    -----------
+    shot - int
+        The DIII-D shot number.
+
+    tau - float
+        The estimated trigger offset between boards 7 and 8. If the
+        board-7 measurements correspond to a true, physical time `t`,
+        then the board-8 measurements correspond to a true, physical
+        time `t + tau`. (Note that `tau` is *signed* such that a
+        negative value of `tau` indicates that the true, physical time
+        corresponding to the board-8 measurements actually precedes
+        that of the board 7 measurements).
+
+        The estimation algorithm is discussed extensively in the
+        documentation for :py:class:`TriggerOffset
+        <random_data.signals.sampling.TriggerOffset>`. The quality of
+        the estimate can be qualitatively and quickly visualized using
+        the `self.plotLocalCrossPhaseError()` and
+        `self.plotSummedCrossPhaseError()` methods.
+
+        [tau] = s
+
+    The additional attributes:
+
+        {`dtheta`, `E`, `Efit`, `f`, `flim`, `Fs`,
+        `gamma2xy_max`, `shifts`, weight`}
+
+    are described in the documentation for :py:class:`TriggerOffset
+    <random_data.signals.sampling.TriggerOffset>`.
+
+    Methods:
+    --------
+    Type `help(mitpci.boards.TriggerOffset)` in the IPython console
+    for a listing.
+
     '''
     def __init__(self, Ph_pci, **trig_kwargs):
-        '''
+        '''Create an instance of the `TriggerOffset` class.
 
-        For example, as of 9/7/17, the PCI's digitizer to detector
-        mapping is:
+        Input parameters:
+        -----------------
+        Ph_pci - :py:class:`Phase <mitpci.pci.Phase>` instance
+            This instance should contain *stationary* PCI data
+            from four equally spaced detector elements. Two of
+            the signals should have been digitized on board 7,
+            and the other two signals should have been digitized
+            on board 8. For example, as of 9/19/17, the PCI's
+            digitizer to detector mapping includes:
 
                 digitizer channel  <-->  detector element
                 -----------------        ----------------
@@ -30,14 +75,22 @@ class TriggerOffset(rd.signals.TriggerOffset):
                    9 (board 8)                  17
                   12 (board 8)                  18
 
-        such that
+            such that PCI signals from *digitizer* channels
+            [7, 8, 9, 12] can be used to estimate the trigger
+            offset.
 
-               correlation pairs     <-->  element separation
-            -----------------------        ------------------
-             7 & 8  (board 7 only)                 1
-             8 & 9  (board 7 & 8)                  1
-             9 & 12 (board 8 only)                 1
+        trig_kwargs - any valid keyword arguments for
+            :py:class:`TriggerOffset
+                <random_data.signals.sampling.TriggerOffset>`.
 
+            For example, use
+
+                trig = TriggerOffset(Ph_pci, Nreal_per_ens=100)
+
+            to indicate that `Nreal_per_ens` realizations should be
+            averaged over to estimate the trigger offset; typically,
+            *at least* 100 realizations should be averaged over
+            for an accurate estimate of the trigger offset.
 
         '''
         # Ensure we are working with correct object
@@ -59,6 +112,13 @@ class TriggerOffset(rd.signals.TriggerOffset):
             trig_kwargs['flim']
         except KeyError:
             trig_kwargs['flim'] = [10e3, 500e3]
+
+        # Typically, at least 100 realizations should be averaged over
+        # for an accurate estimate of the trigger offset.
+        try:
+            trig_kwargs['Nreal_per_ens']
+        except KeyError:
+            trig_kwargs['Nreal_per_ens'] = 100
 
         # Check topology and parse results
         res = _check_topology(
