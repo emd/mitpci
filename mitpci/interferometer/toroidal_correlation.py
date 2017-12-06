@@ -41,7 +41,7 @@ class ToroidalCorrelation(CrossSpectralDensity):
         have been removed.
 
     '''
-    def __init__(self, Ph, V2=None, trigger_offset=-32.5e-6,
+    def __init__(self, Ph, V2=None, trigger_offset=32.5e-6,
                  vibration_subtracted=False, **csd_kwargs):
         '''Create an instance of the `ToroidalCorrelation` class.
 
@@ -65,9 +65,10 @@ class ToroidalCorrelation(CrossSpectralDensity):
             in a finite "trigger offset". This offset must be compensated
             for in order to extract sensible results from the correlation.
 
-            When `trigger_offset` is positive, the MIT timebase leads
-            the V2 timebase. When `trigger_offset` is negative, the
-            MIT timebase lags the V2 timebase.
+            When `trigger_offset` is positive, then (after aligning the
+            nominal sample times) the *actual* MIT sample times lag
+            (i.e. occur after) those of the V2 interferometer.
+            See E. Davis's thesis for details.
 
             [trigger_offset] = s
 
@@ -175,11 +176,11 @@ class ToroidalCorrelation(CrossSpectralDensity):
         offset = np.int(V2.Fs * self.trigger_offset)
 
         if offset > 0:
-            sl_V2 = slice(None, -offset)
-            sl_MIT = slice(offset, None)
+            sl_V2 = slice(offset, None)
+            sl_MIT = slice(None, -offset)
         elif offset < 0:
-            sl_V2 = slice(-offset, None)
-            sl_MIT = slice(None, offset)
+            sl_V2 = slice(None, offset)
+            sl_MIT = slice(-offset, None)
         else:
             sl_V2 = slice(None, None)
             sl_MIT = slice(None, None)
